@@ -2,6 +2,7 @@ using Api.Auth;
 using Application.Auth.Commands.ActivateUser;
 using Application.Auth.Commands.AuthenticateUser;
 using Application.Auth.Commands.RegisterUser;
+using Application.Auth.Commands.ResendActivationEmail;
 using Contracts.DTO.Auth;
 using Infrastructure.Configuration.Options;
 using MediatR;
@@ -42,6 +43,25 @@ public class AuthController : ControllerBase
             request.Age,
             _options.AllowedEmailDomain,
             _options.ActivationBaseUrl);
+
+        try
+        {
+            var response = await _sender.Send(command, cancellationToken);
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("resend-activation")]
+    [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResendActivation([FromBody] ResendActivationRequest request, CancellationToken cancellationToken)
+    {
+        var command = new ResendActivationEmailCommand(request.Email, _options.ActivationBaseUrl);
 
         try
         {
