@@ -57,6 +57,7 @@ builder.Services.AddSwaggerGen(options =>
 var authOptions = BindOptions<AuthOptions>(builder.Services, builder.Configuration);
 var postgresOptions = BindOptions<PostgresOptions>(builder.Services, builder.Configuration);
 var redisOptions = BindOptions<RedisOptions>(builder.Services, builder.Configuration);
+_ = BindOptions<EmailOptions>(builder.Services, builder.Configuration);
 _ = BindOptions<RabbitMqOptions>(builder.Services, builder.Configuration);
 _ = BindOptions<ElasticsearchOptions>(builder.Services, builder.Configuration);
 _ = BindOptions<StripeOptions>(builder.Services, builder.Configuration);
@@ -75,7 +76,7 @@ builder.Services
         options.UseNpgsql(postgresOptions.ConnectionString));
 
 builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<MarketplaceDbContext>());
-builder.Services.AddScoped<IEmailSender, Infrastructure.Email.ConsoleEmailSender>();
+builder.Services.AddScoped<IEmailSender, Infrastructure.Email.SmtpEmailSender>();
 builder.Services.AddScoped<DatabaseSeeder>();
 
 builder.Services
