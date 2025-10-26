@@ -31,6 +31,8 @@ packages/
 # DotNet
 project.lock.json
 *.dbmdl
+appsettings.Development.json
+appsettings.Production.json
 
 # EF Core Migrations snapshot temporary files
 *.Snapshot
