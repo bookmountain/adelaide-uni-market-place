@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Domain.Entities.Users;
 using Domain.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -12,19 +10,21 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
 {
     private static readonly ValueConverter<AdelaideDepartment, string> DepartmentConverter = new(
         value => value.ToString(),
-        value => ConvertRequired(value, DepartmentLookup, nameof(AdelaideDepartment)));
+        value => ParseOrThrow<AdelaideDepartment>(value, nameof(User.Department)));
 
     private static readonly ValueConverter<AcademicDegree, string> DegreeConverter = new(
         value => value.ToString(),
-        value => ConvertRequired(value, DegreeLookup, nameof(AcademicDegree)));
+        value => ParseOrThrow<AcademicDegree>(value, nameof(User.Degree)));
 
     private static readonly ValueConverter<UserSex, string> SexConverter = new(
         value => value.ToString(),
-        value => ConvertRequired(value, SexLookup, nameof(UserSex)));
+        value => ParseOrThrow<UserSex>(value, nameof(User.Sex)));
 
     private static readonly ValueConverter<Nationality?, string?> NationalityConverter = new(
-        value => value.HasValue ? value.Value.ToString() : null,
-        value => ConvertOptional(value, NationalityLookup, nameof(Nationality)));
+        value => value.ToString(),
+        value => string.IsNullOrWhiteSpace(value)
+            ? null
+            : ParseOrThrow<Nationality>(value!, nameof(User.Nationality)));
 
     public void Configure(EntityTypeBuilder<User> builder)
     {
@@ -99,121 +99,14 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .OnDelete(DeleteBehavior.Restrict);
     }
 
-    private static readonly IReadOnlyDictionary<string, AdelaideDepartment> DepartmentLookup = BuildLookup(
-        Enum.GetValues<AdelaideDepartment>(),
-        new (string alias, AdelaideDepartment value)[]
-        {
-            ("Computer Science", AdelaideDepartment.ComputerScience),
-            ("Agricultural Science", AdelaideDepartment.AgriculturalScience),
-            ("Chemical Engineering", AdelaideDepartment.ChemicalEngineering),
-            ("Civil Engineering", AdelaideDepartment.CivilEnvironmentalAndMiningEngineering),
-            ("Electrical Engineering", AdelaideDepartment.ElectricalAndElectronicEngineering),
-            ("Mechanical Engineering", AdelaideDepartment.MechanicalEngineering),
-            ("Environmental Science", AdelaideDepartment.EnvironmentalScienceAndManagement)
-        });
-
-    private static readonly IReadOnlyDictionary<string, AcademicDegree> DegreeLookup = BuildLookup(
-        Enum.GetValues<AcademicDegree>(),
-        new (string alias, AcademicDegree value)[]
-        {
-            ("Bachelor of IT", AcademicDegree.Bachelor),
-            ("Bachelor of Science", AcademicDegree.Bachelor),
-            ("Undergraduate", AcademicDegree.Bachelor),
-            ("Masters", AcademicDegree.Master),
-            ("Master's", AcademicDegree.Master),
-            ("Postgraduate", AcademicDegree.Master),
-            ("Doctorate", AcademicDegree.Doctor),
-            ("PhD", AcademicDegree.Doctor)
-        });
-
-    private static readonly IReadOnlyDictionary<string, UserSex> SexLookup = BuildLookup(
-        Enum.GetValues<UserSex>(),
-        new (string alias, UserSex value)[]
-        {
-            ("Prefer not to say", UserSex.PreferNotToSay)
-        });
-
-    private static readonly IReadOnlyDictionary<string, Nationality> NationalityLookup = BuildLookup(
-        Enum.GetValues<Nationality>(),
-        new (string alias, Nationality value)[]
-        {
-            ("Australian", Nationality.Australia),
-            ("United States of America", Nationality.UnitedStates),
-            ("USA", Nationality.UnitedStates),
-            ("UK", Nationality.UnitedKingdom),
-            ("UAE", Nationality.UnitedArabEmirates),
-            ("Republic of Korea", Nationality.SouthKorea)
-        });
-
-    private static TEnum ConvertRequired<TEnum>(string? value, IReadOnlyDictionary<string, TEnum> lookup, string label)
+    private static TEnum ParseOrThrow<TEnum>(string value, string propertyName)
         where TEnum : struct, Enum
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (Enum.TryParse<TEnum>(value, true, out var parsed))
         {
-            throw new InvalidOperationException($"{label} value is required.");
+            return parsed;
         }
 
-        var key = NormalizeKey(value);
-        if (lookup.TryGetValue(key, out var matched))
-        {
-            return matched;
-        }
-
-        throw new InvalidOperationException($"Unsupported {label} value '{value}'.");
-    }
-
-    private static TEnum? ConvertOptional<TEnum>(string? value, IReadOnlyDictionary<string, TEnum> lookup, string label)
-        where TEnum : struct, Enum
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        var key = NormalizeKey(value);
-        if (lookup.TryGetValue(key, out var matched))
-        {
-            return matched;
-        }
-
-        throw new InvalidOperationException($"Unsupported {label} value '{value}'.");
-    }
-
-    private static IReadOnlyDictionary<string, TEnum> BuildLookup<TEnum>(IEnumerable<TEnum> values, IEnumerable<(string alias, TEnum value)> extras)
-        where TEnum : struct, Enum
-    {
-        var dictionary = new Dictionary<string, TEnum>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var value in values)
-        {
-            dictionary[NormalizeKey(value.ToString())] = value;
-        }
-
-        foreach (var (alias, mapped) in extras)
-        {
-            dictionary[NormalizeKey(alias)] = mapped;
-        }
-
-        return dictionary;
-    }
-
-    private static string NormalizeKey(string input)
-    {
-        var trimmed = input.Trim();
-        if (trimmed.Length == 0)
-        {
-            return string.Empty;
-        }
-
-        var builder = new System.Text.StringBuilder(trimmed.Length);
-        foreach (var c in trimmed)
-        {
-            if (char.IsLetterOrDigit(c))
-            {
-                builder.Append(char.ToLowerInvariant(c));
-            }
-        }
-
-        return builder.ToString();
+        throw new InvalidOperationException($"Unsupported value '{value}' for {propertyName}.");
     }
 }
