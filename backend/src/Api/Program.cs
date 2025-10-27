@@ -6,6 +6,7 @@ using Application.Common.Interfaces;
 using Infrastructure.Configuration.Options;
 using Infrastructure.Data;
 using Infrastructure.Data.Seeding;
+using Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -77,6 +78,7 @@ builder.Services
 
 builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<MarketplaceDbContext>());
 builder.Services.AddScoped<IEmailSender, Infrastructure.Email.SmtpEmailSender>();
+builder.Services.AddSingleton<IObjectStorageService, R2ObjectStorageService>();
 builder.Services.AddScoped<DatabaseSeeder>();
 
 builder.Services
@@ -110,6 +112,9 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    var dbContext = scope.ServiceProvider.GetRequiredService<MarketplaceDbContext>();
+    await dbContext.Database.MigrateAsync();
+
     var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
     await seeder.SeedAsync();
 }

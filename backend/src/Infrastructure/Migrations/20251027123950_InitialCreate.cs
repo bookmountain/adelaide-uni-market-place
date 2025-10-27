@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Infrastructure.Data.Migrations
+namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -32,7 +32,17 @@ namespace Infrastructure.Data.Migrations
                     Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
                     DisplayName = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    Role = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false)
+                    Role = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    PasswordHash = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    Department = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    Degree = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    Sex = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
+                    AvatarUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
+                    Nationality = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    Age = table.Column<int>(type: "integer", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    ActivationToken = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
+                    ActivationTokenExpiresAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -135,7 +145,8 @@ namespace Infrastructure.Data.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     ItemId = table.Column<Guid>(type: "uuid", nullable: false),
                     Url = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
-                    SortOrder = table.Column<int>(type: "integer", nullable: false)
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    StorageKey = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false)
                 },
                 constraints: table =>
                 {

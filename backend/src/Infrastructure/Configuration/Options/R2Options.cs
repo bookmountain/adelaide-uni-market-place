@@ -17,4 +17,8 @@ public sealed class R2Options : IConfigSection
 
     [Required(AllowEmptyStrings = false)]
     public string Bucket { get; init; } = string.Empty;
+
+    public string? Endpoint { get; init; }
+
+    public string? PublicBaseUrl { get; init; }
 }

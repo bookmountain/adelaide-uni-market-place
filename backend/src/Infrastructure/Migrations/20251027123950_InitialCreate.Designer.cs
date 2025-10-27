@@ -9,11 +9,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Infrastructure.Data.Migrations
+namespace Infrastructure.Migrations
 {
     [DbContext(typeof(MarketplaceDbContext))]
-    [Migration("20251025124354_Initial")]
-    partial class Initial
+    [Migration("20251027123950_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -142,6 +142,11 @@ namespace Infrastructure.Data.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<string>("Url")
                         .IsRequired()
                         .HasMaxLength(512)
@@ -221,8 +226,32 @@ namespace Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ActivationToken")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTimeOffset?>("ActivationTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("Age")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AvatarUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Degree")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Department")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
@@ -234,10 +263,27 @@ namespace Infrastructure.Data.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Nationality")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Sex")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.HasKey("Id");
 
@@ -249,18 +295,18 @@ namespace Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Domain.Entities.Chats.ChatMessage", b =>
                 {
-                    b.HasOne("Domain.Users.User", "FromUser")
+                    b.HasOne("Domain.Entities.Users.User", "FromUser")
                         .WithMany()
                         .HasForeignKey("FromUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Domain.Items.Item", "Item")
+                    b.HasOne("Domain.Entities.Items.Item", "Item")
                         .WithMany()
                         .HasForeignKey("ItemId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Domain.Users.User", "ToUser")
+                    b.HasOne("Domain.Entities.Users.User", "ToUser")
                         .WithMany()
                         .HasForeignKey("ToUserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -275,13 +321,13 @@ namespace Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Domain.Entities.Items.Item", b =>
                 {
-                    b.HasOne("Domain.Categories.Category", "Category")
+                    b.HasOne("Domain.Entities.Categories.Category", "Category")
                         .WithMany("Items")
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Domain.Users.User", "Seller")
+                    b.HasOne("Domain.Entities.Users.User", "Seller")
                         .WithMany("ItemsForSale")
                         .HasForeignKey("SellerId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -292,9 +338,9 @@ namespace Infrastructure.Data.Migrations
                     b.Navigation("Seller");
                 });
 
-            modelBuilder.Entity("Domain.Items.ListingImage", b =>
+            modelBuilder.Entity("Domain.Entities.Items.ListingImage", b =>
                 {
-                    b.HasOne("Domain.Items.Item", "Item")
+                    b.HasOne("Domain.Entities.Items.Item", "Item")
                         .WithMany("Images")
                         .HasForeignKey("ItemId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -303,9 +349,9 @@ namespace Infrastructure.Data.Migrations
                     b.Navigation("Item");
                 });
 
-            modelBuilder.Entity("Domain.Orders.Order", b =>
+            modelBuilder.Entity("Domain.Entities.Orders.Order", b =>
                 {
-                    b.HasOne("Domain.Users.User", "Buyer")
+                    b.HasOne("Domain.Entities.Users.User", "Buyer")
                         .WithMany("Orders")
                         .HasForeignKey("BuyerId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -314,15 +360,15 @@ namespace Infrastructure.Data.Migrations
                     b.Navigation("Buyer");
                 });
 
-            modelBuilder.Entity("Domain.Orders.OrderItem", b =>
+            modelBuilder.Entity("Domain.Entities.Orders.OrderItem", b =>
                 {
-                    b.HasOne("Domain.Items.Item", "Item")
+                    b.HasOne("Domain.Entities.Items.Item", "Item")
                         .WithMany()
                         .HasForeignKey("ItemId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Domain.Orders.Order", "Order")
+                    b.HasOne("Domain.Entities.Orders.Order", "Order")
                         .WithMany("Items")
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -333,22 +379,22 @@ namespace Infrastructure.Data.Migrations
                     b.Navigation("Order");
                 });
 
-            modelBuilder.Entity("Domain.Categories.Category", b =>
+            modelBuilder.Entity("Domain.Entities.Categories.Category", b =>
                 {
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("Domain.Items.Item", b =>
+            modelBuilder.Entity("Domain.Entities.Items.Item", b =>
                 {
                     b.Navigation("Images");
                 });
 
-            modelBuilder.Entity("Domain.Orders.Order", b =>
+            modelBuilder.Entity("Domain.Entities.Orders.Order", b =>
                 {
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("Domain.Users.User", b =>
+            modelBuilder.Entity("Domain.Entities.Users.User", b =>
                 {
                     b.Navigation("ItemsForSale");
 

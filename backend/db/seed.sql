@@ -1,28 +1,3 @@
--- Wipe existing seed data (idempotent)
-DELETE FROM listing_images
-WHERE "Id" IN (
-    '30000000-0000-0000-0000-000000000001',
-    '30000000-0000-0000-0000-000000000002',
-    '30000000-0000-0000-0000-000000000003',
-    '30000000-0000-0000-0000-000000000004'
-);
-
-DELETE FROM items
-WHERE "Id" IN (
-    '20000000-0000-0000-0000-000000000001',
-    '20000000-0000-0000-0000-000000000002'
-);
-
-DELETE FROM users
-WHERE "Email" = 'student@adelaide.edu.au';
-
-DELETE FROM categories
-WHERE "Slug" IN (
-    'textbooks', 'electronics', 'furniture', 'stationery',
-    'clothing', 'sports-recreation', 'transport',
-    'events-tickets', 'miscellaneous'
-);
-
 -- Seed categories
 INSERT INTO categories ("Id", "Name", "Slug")
 VALUES
@@ -99,10 +74,10 @@ VALUES (
 )
 ;
 
-INSERT INTO listing_images ("Id", "ItemId", "Url", "SortOrder")
+INSERT INTO listing_images ("Id", "ItemId", "Url", "SortOrder", "StorageKey")
 VALUES
-    ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800', 1),
-    ('30000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'https://images.unsplash.com/photo-1522204538344-d26c3a3b271e?w=800', 2)
+    ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800', 1, 'seed/textbook-1.jpg'),
+    ('30000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'https://images.unsplash.com/photo-1522204538344-d26c3a3b271e?w=800', 2, 'seed/textbook-2.jpg')
 ;
 
 -- Seed laptop sample item
@@ -130,8 +105,8 @@ VALUES (
 )
 ;
 
-INSERT INTO listing_images ("Id", "ItemId", "Url", "SortOrder")
+INSERT INTO listing_images ("Id", "ItemId", "Url", "SortOrder", "StorageKey")
 VALUES
-    ('30000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000002', 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800', 1),
-    ('30000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000002', 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800', 2)
+    ('30000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000002', 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800', 1, 'seed/laptop-1.jpg'),
+    ('30000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000002', 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800', 2, 'seed/laptop-2.jpg')
 ;

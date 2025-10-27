@@ -15,6 +15,34 @@ ASPNETCORE_ENVIRONMENT=Development dotnet ef database update --project src/Infra
 dotnet run --project src/Api/Api.csproj
 ```
 
+### Running the full stack with Docker Compose
+
+To run PostgreSQL, Redis, RabbitMQ, Elasticsearch, and the Web API together in containers:
+
+```bash
+cd backend
+docker compose up --build
+```
+
+Services started by the compose file:
+
+- `postgres` – PostgreSQL 16 with a persisted volume (`postgres_data`)
+- `redis` – Redis 7 for cache/pub-sub (`redis_data`)
+- `rabbitmq` – RabbitMQ 3 with the management UI on `http://localhost:15672`
+- `elasticsearch` – Single-node Elasticsearch 8 (`elastic_data`)
+- `api` – ASP.NET Core Web API exposed on `http://localhost:8080`
+
+The API container waits for PostgreSQL, applies migrations, and runs `db/seed.sql` on startup. Override email/R2 credentials by editing `docker-compose.yml` or supplying an `.env` file before running `docker compose up`.
+
+Rebuild after code changes with `docker compose up --build`. Stop everything with `docker compose down`. Add `-v` to remove the persisted volumes if you want a completely fresh start.
+
+
+**Docker Compose (.env):**
+
+1. Copy `backend/.env.example` to `backend/.env`.
+2. Edit the new `.env` with real SMTP/R2 secrets.
+3. Run `docker compose up --build` as shown above.
+
 The API listens on `https://localhost:7123` (Kestrel default) and exposes:
 
 -   `/swagger` – interactive OpenAPI documentation
@@ -126,7 +154,7 @@ On success you receive the same `AuthResponse` payload. Use `Authorization: Bear
 2. Browse to `https://localhost:7123/swagger`.
 3. Register a new account via `POST /api/auth/register` (check the console output for the activation link and open `GET /api/auth/activate?token=<value>` to activate) or reuse an existing one via `POST /api/auth/login`.
 4. Click **Authorize**, choose the `Bearer` scheme, and paste `Bearer <token>`.
-5. Exercise the secured `/api/items` endpoints.
+5. Exercise the secured `/api/items` endpoints. When creating items, use the `POST /api/items` form-data endpoint to supply metadata and one or more image files in a single request.
 
 ### Seeded Account
 

@@ -10,6 +10,10 @@ namespace Infrastructure.Data.Seeding;
 
 public sealed class DatabaseSeeder
 {
+    private static readonly Guid SeedCategoryId = Guid.Parse("00000000-0000-0000-0000-000000000101"); // Textbooks
+    private static readonly Guid SeedItemId = Guid.Parse("20000000-0000-0000-0000-000000000001"); // Calculus II Textbook
+    private const string SeedUserEmail = "student@adelaide.edu.au";
+
     private readonly MarketplaceDbContext _dbContext;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<DatabaseSeeder> _logger;
@@ -26,6 +30,12 @@ public sealed class DatabaseSeeder
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
+        if (await SeedAlreadyAppliedAsync(cancellationToken))
+        {
+            _logger.LogInformation("Seed data already present; skipping execution.");
+            return;
+        }
+
         var scriptPath = ResolveSeedScriptPath();
         if (!File.Exists(scriptPath))
         {
@@ -42,6 +52,23 @@ public sealed class DatabaseSeeder
 
         await _dbContext.Database.ExecuteSqlRawAsync(sql, cancellationToken);
         _logger.LogInformation("Executed seed script {Path}.", scriptPath);
+    }
+
+    private async Task<bool> SeedAlreadyAppliedAsync(CancellationToken cancellationToken)
+    {
+        var categoryExists = await _dbContext.Categories
+            .AsNoTracking()
+            .AnyAsync(c => c.Id == SeedCategoryId, cancellationToken);
+
+        var itemExists = await _dbContext.Items
+            .AsNoTracking()
+            .AnyAsync(i => i.Id == SeedItemId, cancellationToken);
+
+        var userExists = await _dbContext.Users
+            .AsNoTracking()
+            .AnyAsync(u => u.Email == SeedUserEmail, cancellationToken);
+
+        return categoryExists && itemExists && userExists;
     }
 
     private string ResolveSeedScriptPath()

@@ -19,6 +19,10 @@ internal sealed class ListingImageConfiguration : IEntityTypeConfiguration<Listi
         builder.Property(li => li.SortOrder)
             .IsRequired();
 
+        builder.Property(li => li.StorageKey)
+            .IsRequired()
+            .HasMaxLength(256);
+
         builder.HasOne(li => li.Item)
             .WithMany(i => i.Images)
             .HasForeignKey(li => li.ItemId)
