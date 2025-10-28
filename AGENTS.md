@@ -1,424 +1,162 @@
-Here’s a drop-in **AGENTS.md** you can place at the repo root to drive Codex CLI for a backend-first, step-by-step scaffold in .NET.
-
----
-
 # AGENTS.md
 
 ## Purpose
 
-You are an AI code agent working in this repository to build the **backend** for **Adelaide University Marketplace**. Work **incrementally**, committing small, reviewable changes. Your primary goals:
+You are the AI maintainer for the **Adelaide University Marketplace** backend. The core platform is already running with:
 
-1. Set up an ASP.NET Core Web API with clean architecture.
-2. Implement OAuth2/OIDC login flow (domain-enforced `@adelaide.edu.au`), issuing app JWTs.
-3. Create primary entities & EF Core migrations targeting PostgreSQL.
-4. Prepare integration points (Redis, RabbitMQ, Elasticsearch, Cloudflare R2, Stripe) with safe stubs.
-5. Ship runnable local dev (docker-compose) and solid defaults.
+- ASP.NET Core 8 Web API (clean architecture across `Api`, `Application`, `Domain`, `Infrastructure`, `Contracts`).
+- Local email/password registration with activation workflow (activation links via SMTP).
+- JWT authentication/authorization.
+- Marketplace items with image management (images stored in Cloudflare R2 through the S3-compatible SDK).
+- PostgreSQL, Redis, RabbitMQ, and Elasticsearch orchestrated via Docker Compose.
 
-Follow the steps in this file strictly. When in doubt, prefer smaller PRs, strong typing, and clear docs.
+Your mission is to extend and harden the backend while keeping the system production-ready.
 
----
-
-## Non-negotiable guardrails
-
--   **Language & Framework:** .NET 8, C#. Web API only (no MVC views).
--   **Architecture:** Solution with projects: `Api`, `Application`, `Domain`, `Infrastructure`, `Contracts` (+ later `Services/*`).
--   **Security:** OIDC login required for protected APIs; enforce email domain check. Use environment variables for secrets. No secrets committed.
--   **Tooling:** EF Core for migrations; Serilog for logging; Swagger for docs; FluentValidation for input validation.
--   **Testing:** Add minimal unit tests for domain and application layers as you go.
--   **Docs:** Update `README.md` and this `AGENT.md` whenever behavior or setup changes.
+Work incrementally, favour small, reviewable changes, and keep documentation up to date.
 
 ---
 
-## Repository layout (target)
+## Current Repository Layout
 
 ```
 /backend
+  Dockerfile
+  docker-compose.yml
+  .env.example
+  /db
+    seed.sql
   /src
     /Api
     /Application
     /Domain
     /Infrastructure
     /Contracts
-  /tests
-    /Domain.Tests
-    /Application.Tests
-  /db
-    seed.sql
-  /scripts
-    dev.ps1
-    dev.sh
-  /infra
-    docker-compose.yml
-    /azure-deploy   # IaC stubs later
+  /tests          (placeholder – add projects when tests are introduced)
 /README.md
-/AGENT.md
+/AGENTS.md
 ```
 
 ---
 
-## Step plan (backend-first)
+## Running the stack
 
-### Step B1 — Solution & packages
+1. `cp backend/.env.example backend/.env` and populate with real values (SMTP, R2, JWT).
+2. `cd backend`
+3. `docker compose up --build`
+4. Swagger UI is available at `http://localhost:8080/swagger`.
 
-**Create solution and projects**
-
--   `dotnet new sln -n Marketplace`
--   `dotnet new webapi -n Api`
--   `dotnet new classlib -n Application`
--   `dotnet new classlib -n Domain`
--   `dotnet new classlib -n Infrastructure`
--   `dotnet new classlib -n Contracts`
--   Add to solution, set references:
-
-    -   `Api -> Application, Infrastructure, Contracts`
-    -   `Application -> Domain, Contracts`
-    -   `Infrastructure -> Application, Domain, Contracts`
-
-**NuGet packages (pin to latest stable where possible)**
-
--   Api:
-
-    -   `Swashbuckle.AspNetCore`
-    -   `Serilog.AspNetCore`, `Serilog.Sinks.Console`
-    -   `Microsoft.AspNetCore.Authentication.JwtBearer`
-    -   `Microsoft.AspNetCore.Authentication.OpenIdConnect`
-
--   Application:
-
-    -   `MediatR`, `FluentValidation`, `FluentValidation.DependencyInjectionExtensions`
-    -   `AutoMapper` (or `Mapster`) — choose one; prefer Mapster for no runtime reflection: `Mapster`, `Mapster.DependencyInjection`
-
--   Domain: (no external packages)
--   Infrastructure:
-
-    -   `Microsoft.EntityFrameworkCore`
-    -   `Npgsql.EntityFrameworkCore.PostgreSQL`
-    -   `StackExchange.Redis`
-    -   `RabbitMQ.Client` (or `MassTransit` + `MassTransit.RabbitMQ`)
-    -   `Elastic.Clients.Elasticsearch`
-    -   `Stripe.net`
-    -   `AWSSDK.S3` (R2 compatible S3 API) OR `Minio` SDK; choose S3 compatible
-    -   `OpenIddict` **(optional later if we self-host OIDC)**
-
-**Definition of done (B1)**
-
--   Builds successfully.
--   `Api` runs and serves `/swagger` and `/healthz`.
--   Serilog writes structured logs to console.
--   `README.md` updated with run instructions.
+The API container runs EF Core migrations and executes `db/seed.sql` automatically the first time (it skips on subsequent starts once seed markers exist).
 
 ---
 
-### Step B2 — Configuration & env
+## Implemented features (baseline)
 
-**appsettings.json & environment**
-
--   Add strongly-typed options classes in `Infrastructure`:
-
-    -   `PostgresOptions`, `RedisOptions`, `RabbitMqOptions`, `ElasticsearchOptions`, `StripeOptions`, `R2Options`, `AuthOptions` (authority, clientId, etc.)
-
--   Wire them via `IOptions<T>`.
--   Require these env vars at runtime (document in README):
-
-```
-ASPNETCORE_ENVIRONMENT=Development
-POSTGRES__CONNECTION_STRING=Host=localhost;Database=marketplace;Username=postgres;Password=postgres
-REDIS__CONNECTION_STRING=localhost:6379
-RABBITMQ__HOST=amqp://guest:guest@localhost:5672
-ELASTIC__URI=http://localhost:9200
-STRIPE__SECRET_KEY=sk_test_xxx
-R2__ACCOUNT_ID=...
-R2__ACCESS_KEY_ID=...
-R2__SECRET_ACCESS_KEY=...
-R2__BUCKET=marketplace-media
-AUTH__AUTHORITY=https://<your-oidc-provider>
-AUTH__CLIENT_ID=...
-AUTH__CLIENT_SECRET=...
-AUTH__APP_JWT_ISSUER=https://marketplace.api
-AUTH__APP_JWT_SIGNING_KEY=<dev-only-long-random>
-AUTH__ALLOWED_EMAIL_DOMAIN=adelaide.edu.au
-```
-
-**Definition of done (B2)**
-
--   `Api` validates required config on startup and fails fast with clear errors.
--   `/healthz` includes dependency readiness checks (ping Postgres, optional Redis).
+- **Auth**
+  - Local email + password registration.
+  - Activation emails (token expires after 24 hours).
+  - Login requiring activated accounts; application-issued JWTs.
+  - Resend activation endpoint.
+- **Marketplace Domain**
+  - Categories, Items, ListingImages entities with EF Core migrations.
+  - Item CRUD with validation via FluentValidation.
+  - Image upload/delete endpoints (multipart form-data) storing media in R2.
+- **Infrastructure**
+  - PostgreSQL (Npgsql), Redis, RabbitMQ, Elasticsearch clients configured.
+  - Cloudflare R2 storage abstraction (S3-compatible).
+  - Serilog logging, health checks, Swagger (with JWT auth support).
+- **Tooling**
+  - Docker Compose orchestrating Postgres, Redis, RabbitMQ, Elasticsearch, API.
+  - Seed script wiping and repopulating canonical demo data.
 
 ---
 
-### Step B3 — Primary domain model & migrations
+## Guardrails
 
-**Entities (Domain project)**
-
--   `User` (Id, Email, DisplayName, CreatedAt, Role)
--   `Category` (Id, Name, Slug)
--   `Item` (Id, SellerId -> User, Title, Description, Price, CategoryId, Status, CreatedAt, UpdatedAt)
--   `ListingImage` (Id, ItemId, Url, SortOrder)
--   `Order` (Id, BuyerId -> User, Total, Status, PaymentProvider, PaymentRef, CreatedAt)
--   `OrderItem` (Id, OrderId, ItemId, Price, Qty)
--   `ChatMessage` (Id, ThreadId, FromUserId, ToUserId, ItemId?, Body, SentAt) — keep minimal now
--   Enums in `Domain.Shared` for `ItemStatus`, `OrderStatus`, `PaymentProvider`
-
-**Infrastructure**
-
--   `MarketplaceDbContext` with DbSets
--   Configurations via `IEntityTypeConfiguration<>`
--   EF Core migrations:
-
-    -   `dotnet ef migrations add Initial --project Infrastructure --startup-project Api`
-    -   `dotnet ef database update --project Infrastructure --startup-project Api`
-
-**Definition of done (B3)**
-
--   DB creates successfully.
--   Basic referential constraints enforced.
--   Seed placeholders exist (`db/seed.sql`, to be refined later).
+- Target framework: **.NET 8**.
+- Use existing architecture (Api/Application/Domain/Infrastructure/Contracts).
+- All secrets/config come from environment variables / `.env` (never commit secrets).
+- Write idempotent migrations and avoid destructive seed logic.
+- When extending endpoints, keep Swagger documentation accurate (response codes, example payloads where useful).
+- Update `README.md` and this file when behaviour/setup changes.
+- Prefer strong typing, explicit validation, and clear logging.
 
 ---
 
-### Step B4 — Auth flow (OIDC login + app JWT issuance)
+## High-level roadmap
 
-**Approach**
+### 1. Stability & Tests
+- Add unit/integration tests for critical flows (registration, activation, item CRUD & image handling).
+- Introduce GitHub Actions (or other CI) to run build + tests.
+- Harden error handling & logging around external services (SMTP, R2).
 
--   The API will **accept OIDC login via Authorization Code** from mobile client using a hosted provider (dev: generic OIDC or Auth0/Keycloak; prod: uni’s OIDC).
--   After validating the OIDC ID token, the API **issues its own short-lived JWT** (HMAC) with user id/email/roles for app API calls.
+### 2. Authentication Enhancements
+- Optional: integrate institutional SSO/OIDC once credentials are available (keep local login as fallback).
+- Implement password reset flow (email token, new password endpoint).
 
-**Implementation**
+### 3. Marketplace Features
+- Item search (Elasticsearch indexing + query endpoint).
+- Category & item administration (CRUD restrictions, moderation).
+- Item image reordering.
+- Pagination & filtering on item listing endpoints.
 
--   In `Api`, add:
+### 4. Messaging & Payments
+- Hook up RabbitMQ for future notifications.
+- Stub Stripe checkout endpoints (create intent, handle webhook) in preparation for payments.
 
-    -   `OpenIdConnect` handler configured from `AUTH__AUTHORITY`, `AUTH__CLIENT_ID`, `AUTH__CLIENT_SECRET`, scopes `openid profile email`.
-    -   Callback endpoint `/auth/oidc/callback` that:
+### 5. Observability & Ops
+- Metrics/Tracing (OpenTelemetry, Application Insights or similar).
+- Production-ready Docker images (multi-stage with health checks, non-root user).
+- IaC skeleton (Terraform/Bicep) for deploying infrastructure.
 
-        -   Validates ID token, extracts claims.
-        -   **Domain enforcement:** reject if `email` does not end with `@adelaide.edu.au`.
-        -   Upsert `User` in DB.
-        -   Issue app JWT (HMAC using `AUTH__APP_JWT_SIGNING_KEY`).
-        -   Return `{ token, user }` JSON to the mobile app.
-
-    -   `JwtBearer` authentication for subsequent API calls.
-    -   `[Authorize]` requirement for protected endpoints.
-
--   Provide `/auth/dev-login` behind `Development` environment flag for local testing (accepts mock email, applies same domain check).
-
-**Definition of done (B4)**
-
--   `/auth/oidc/callback` returns app JWT for valid OIDC sign-in.
--   Requests with `Authorization: Bearer <token>` hit protected endpoints.
--   Rejected if email domain ≠ `adelaide.edu.au`.
+Work on one theme at a time; keep PRs scoped.
 
 ---
 
-### Step B5 — Basic APIs (CRUD & contracts)
+## Definition of Done (for any change)
 
-**Contracts project**
-
--   Request/response DTOs for:
-
-    -   `Items`: CreateItemRequest, UpdateItemRequest, ItemResponse
-    -   `Categories`: CategoryResponse
-    -   `Auth`: LoginResponse
-
--   Validation with FluentValidation in `Application`.
-
-**Api endpoints (minimal)**
-
--   `GET /healthz`
--   `GET /categories`
--   `GET /items?categoryId=&q=&sort=` (no ES yet; use DB + simple filters)
--   `GET /items/{id}`
--   `POST /items` `[Authorize]` (seller only)
--   `PUT /items/{id}` `[Authorize]` (owner only)
--   `DELETE /items/{id}` `[Authorize]` (owner only)
-
-**Definition of done (B5)**
-
--   Endpoints live with Swagger and model examples.
--   Validation errors return 400 with problem details.
+- Compiles (`dotnet build`) and passes tests (once available).
+- Swagger reflects the new/changed endpoints.
+- Environment variables documented in README if new ones are added.
+- Seed logic updated if new canonical data is required (keep idempotent).
+- Relevant new behaviour covered by unit/integration tests (where applicable).
+- Docker Compose continues to start successfully (`docker compose up --build`).
+- `README.md` and `AGENTS.md` updated if developer workflow changes.
 
 ---
 
-### Step B6 — Integration stubs
-
--   **Redis:** register `IConnectionMultiplexer`, expose a small `ICache` abstraction.
--   **RabbitMQ:** create a lightweight `IEventBus` interface; stub publisher (no consumers yet).
--   **Elasticsearch:** register client; create `IItemSearch` interface stub (return “not implemented” until Step D).
--   **R2 signed uploads:** add `POST /uploads/sign` that returns pre-signed URL stub (implemented later).
--   **Stripe:** add service registration and config; keep webhook controller placeholder `/webhooks/stripe`.
-
-**Definition of done (B6)**
-
--   All clients resolve from DI.
--   Health endpoints report their registration state (not necessarily connectivity yet).
-
----
-
-### Step B7 — Local dev environment
-
-Create `/infra/docker-compose.yml` with services:
-
--   `postgres:16` (port 5432, user/pass `postgres`)
--   `redis:7` (6379)
--   `rabbitmq:management` (5672/15672)
--   `elasticsearch:8` (9200, dev insecure mode)
--   (optional) `mailhog` for local email testing
-
-Add `/scripts/dev.sh` and `dev.ps1` to export env vars and run:
+## Useful commands
 
 ```bash
-docker compose -f infra/docker-compose.yml up -d
-dotnet ef database update --project backend/src/Infrastructure --startup-project backend/src/Api
-dotnet run --project backend/src/Api
-```
+# Restore & build
+cd backend
+dotnet restore
+dotnet build
 
-**Definition of done (B7)**
+# Apply migrations / update schema
+ASPNETCORE_ENVIRONMENT=Development \
+  dotnet ef database update \
+    --project src/Infrastructure/Infrastructure.csproj \
+    --startup-project src/Api/Api.csproj
 
--   One-liner scripts boot infra, migrate DB, and run the API.
+# Run API locally without containers
+ASPNETCORE_ENVIRONMENT=Development \
+  dotnet run --project src/Api/Api.csproj
 
----
-
-## Coding standards
-
--   **Namespaces:** `Marketplace.Api`, `Marketplace.Application`, `Marketplace.Domain`, `Marketplace.Infrastructure`, `Marketplace.Contracts`.
--   **Nullable reference types ON**; treat warnings as errors in CI.
--   **CQRS-light:** Queries/Commands via MediatR; keep handlers small.
--   **Validation:** FluentValidation at the edge (DTOs); domain invariants inside entities.
--   **Mapping:** Mapster; centralize configs.
--   **Logging:** Serilog structured logs (`RequestId`, `UserId`, `TraceId`).
--   **Error model:** RFC 7807 (ProblemDetails) for 4xx/5xx.
-
----
-
-## Commit & PR workflow
-
--   Small, atomic commits. Conventional commits:
-
-    -   `feat(api): add jwt login callback`
-    -   `chore(infra): docker-compose with postgres/redis`
-    -   `refactor(domain): split order aggregates`
-
--   Each step above should be a separate PR with:
-
-    -   Short description
-    -   Checklist of Definition of Done
-    -   Manual test notes (curl examples)
-
----
-
-## Minimal code scaffolds (snippets)
-
-**Program.cs (Api) – essentials**
-
-```csharp
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Host.UseSerilog((ctx, cfg) =>
-    cfg.ReadFrom.Configuration(ctx.Configuration).WriteTo.Console());
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-builder.Services
-    .AddAuthentication()
-    .AddJwtBearer("AppJwt", opts =>
-    {
-        opts.TokenValidationParameters = new()
-        {
-            ValidIssuer = builder.Configuration["AUTH__APP_JWT_ISSUER"],
-            ValidAudience = builder.Configuration["AUTH__APP_JWT_ISSUER"],
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["AUTH__APP_JWT_SIGNING_KEY"]!))
-        };
-    });
-
-builder.Services.AddAuthorization();
-
-builder.Services.AddDbContext<MarketplaceDbContext>(opt =>
-    opt.UseNpgsql(builder.Configuration["POSTGRES__CONNECTION_STRING"]));
-
-builder.Services.AddHealthChecks()
-    .AddNpgSql(builder.Configuration["POSTGRES__CONNECTION_STRING"]!);
-
-var app = builder.Build();
-
-app.UseSerilogRequestLogging();
-app.UseSwagger();
-app.UseSwaggerUI();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
-
-app.Run();
-```
-
-**App JWT issuing helper**
-
-```csharp
-public static class AppJwt
-{
-    public static string Issue(string issuer, string signingKey, string userId, string email, string? role = null, TimeSpan? ttl = null)
-    {
-        var claims = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Sub, userId),
-            new(JwtRegisteredClaimNames.Email, email),
-        };
-        if (!string.IsNullOrWhiteSpace(role))
-            claims.Add(new Claim(ClaimTypes.Role, role));
-
-        var creds = new SigningCredentials(
-            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
-            SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: issuer,
-            claims: claims,
-            expires: DateTime.UtcNow.Add(ttl ?? TimeSpan.FromHours(2)),
-            signingCredentials: creds);
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-}
+# Regenerate Swagger JSON
+dotnet tool install --global Swashbuckle.AspNetCore.Cli
+dotnet swagger tofile --output swagger.json src/Api/bin/Debug/net8.0/Api.dll v1
 ```
 
 ---
 
-## Manual testing (quick)
+## Developer checklist before opening a PR
 
--   `GET /healthz` → `{ status: "ok" }`
--   `GET /swagger` → API docs visible
--   After Step B4:
+- [ ] Code builds locally (`dotnet build`).
+- [ ] Added/updated tests (if applicable) and they pass.
+- [ ] Updated migrations/scripts where schema changed.
+- [ ] Swagger annotations/response types accurate.
+- [ ] Documentation (`README.md`, `AGENTS.md`, comments) updated.
+- [ ] Environment variables defined in `.env.example` if new ones introduced.
+- [ ] Docker Compose tested (`docker compose up --build`).
 
-    -   Call `/auth/dev-login?email=you@adelaide.edu.au` (dev only) → receive `{ token, user }`
-    -   Use `Authorization: Bearer <token>` for protected endpoints.
-
----
-
-## Future steps (tracked but not now)
-
--   Search-sync consumer → Elasticsearch indexing
--   Notifications service → RabbitMQ consumers → push/email
--   Stripe checkout & webhooks
--   R2 signed upload implementation
--   WebSocket chat (scale via Redis pub/sub)
--   Azure deploy (Container Apps/App Service, Azure Postgres Flexible Server, Azure Cache for Redis)
--   Application Insights telemetry
-
----
-
-## Definition of Done (backend MVP)
-
--   Clean architecture solution compiles and runs.
--   OIDC login callback working; app JWT issuance and domain enforcement in place.
--   Primary entities + migrations created; CRUD for Items and Categories.
--   Local infra with docker-compose.
--   Logging, health checks, Swagger, validation.
--   Updated `README.md` with precise run steps and env vars.
-
----
-
-**Agent: proceed with Step B1 now.**
+Keep changes small, descriptive, and easy to review. Happy shipping! 🚀
