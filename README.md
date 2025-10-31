@@ -49,6 +49,7 @@ The API listens on `https://localhost:7123` (Kestrel default) and exposes:
 -   `/healthz` – liveness probe returning `{ "status": "ok" }`
 -   `/api/categories` – public category listing
 -   `/api/items` – authenticated CRUD for marketplace items
+-   `/api/orders` – create an order (in-person delivery) and list buyer orders
 
 > The API seeds a default category set on startup. If you need deterministic IDs, run the SQL in `db/seed.sql` instead.
 

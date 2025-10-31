@@ -2,6 +2,6 @@ namespace Domain.Shared.Enums;
 
 public enum PaymentProvider
 {
-    Unknown = 0,
+    None = 0,
     Stripe = 1
 }

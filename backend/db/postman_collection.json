@@ -1,0 +1,288 @@
+{
+  "info": {
+    "name": "Adelaide Marketplace API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Endpoints for Adelaide University Marketplace backend"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@adelaide.edu.au\",\n  \"password\": \"ChangeMe123!\",\n  \"displayName\": \"Local Student\",\n  \"department\": \"ComputerScience\",\n  \"degree\": \"Bachelor\",\n  \"sex\": \"PreferNotToSay\",\n  \"avatarUrl\": \"https://example.com/avatar.png\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@adelaide.edu.au\",\n  \"password\": \"ChangeMe123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Activate",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/auth/activate?token={{activation_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "activate"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{activation_token}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Resend Activation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@adelaide.edu.au\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/resend-activation",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "resend-activation"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get Categories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/categories",
+              "host": ["{{base_url}}"],
+              "path": ["api", "categories"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Items",
+      "item": [
+        {
+          "name": "List Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/items",
+              "host": ["{{base_url}}"],
+              "path": ["api", "items"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Item (with images)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "CategoryId", "value": "{{category_id}}", "type": "text" },
+                { "key": "Title", "value": "Sample Item", "type": "text" },
+                { "key": "Description", "value": "Gently used item.", "type": "text" },
+                { "key": "Price", "value": "25.00", "type": "text" },
+                { "key": "Images", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/items",
+              "host": ["{{base_url}}"],
+              "path": ["api", "items"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload extra image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "files", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/items/{{item_id}}/images",
+              "host": ["{{base_url}}"],
+              "path": ["api", "items", "{{item_id}}", "images"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete image",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/items/{{item_id}}/images/{{image_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "items", "{{item_id}}", "images", "{{image_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": \"{{item_id}}\",\n  \"meetingLocation\": \"Barr Smith Lawns\",\n  \"meetingScheduledAt\": \"2025-10-27T12:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order By Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orders/{{order_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders", "{{order_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080" },
+    { "key": "jwt", "value": "" },
+    { "key": "activation_token", "value": "" },
+    { "key": "category_id", "value": "00000000-0000-0000-0000-000000000101" },
+    { "key": "item_id", "value": "" },
+    { "key": "image_id", "value": "" },
+    { "key": "order_id", "value": "" }
+  ]
+}

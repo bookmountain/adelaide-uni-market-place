@@ -17,16 +17,22 @@ public class Order
         Guid buyerId,
         decimal total,
         OrderStatus status,
-        PaymentProvider paymentProvider,
-        string paymentReference,
-        DateTimeOffset createdAt)
+        DeliveryMethod deliveryMethod,
+        string meetingLocation,
+        DateTimeOffset createdAt,
+        DateTimeOffset? meetingScheduledAt = null,
+        PaymentProvider paymentProvider = PaymentProvider.None,
+        string? paymentReference = null)
     {
         Id = id;
         BuyerId = buyerId;
         Total = total;
         Status = status;
+        DeliveryMethod = deliveryMethod;
+        MeetingLocation = meetingLocation;
+        MeetingScheduledAt = meetingScheduledAt;
         PaymentProvider = paymentProvider;
-        PaymentReference = paymentReference;
+        PaymentReference = paymentReference ?? string.Empty;
         CreatedAt = createdAt;
     }
 
@@ -34,8 +40,11 @@ public class Order
     public Guid BuyerId { get; private set; }
     public decimal Total { get; private set; }
     public OrderStatus Status { get; private set; }
+    public DeliveryMethod DeliveryMethod { get; private set; }
     public PaymentProvider PaymentProvider { get; private set; }
     public string PaymentReference { get; private set; } = string.Empty;
+    public string MeetingLocation { get; private set; } = string.Empty;
+    public DateTimeOffset? MeetingScheduledAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
     public User? Buyer { get; private set; }
@@ -44,6 +53,12 @@ public class Order
     public void AddItem(OrderItem item)
     {
         _items.Add(item);
+    }
+
+    public void UpdateMeetingDetails(string meetingLocation, DateTimeOffset? meetingScheduledAt)
+    {
+        MeetingLocation = meetingLocation;
+        MeetingScheduledAt = meetingScheduledAt;
     }
 
     public void MarkPaid() => Status = OrderStatus.Paid;

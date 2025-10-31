@@ -169,6 +169,17 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("DeliveryMethod")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MeetingLocation")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTimeOffset?>("MeetingScheduledAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("PaymentProvider")
                         .HasColumnType("integer");
 

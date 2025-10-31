@@ -62,6 +62,11 @@ public class Item
         _images.Add(image);
     }
 
+    public void MarkSold()
+    {
+        Status = ItemStatus.Sold;
+    }
+
     public void ChangeCategory(Guid categoryId)
     {
         CategoryId = categoryId;

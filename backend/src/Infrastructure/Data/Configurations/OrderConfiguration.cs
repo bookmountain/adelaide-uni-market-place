@@ -21,6 +21,10 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasConversion<int>()
             .IsRequired();
 
+        builder.Property(o => o.DeliveryMethod)
+            .HasConversion<int>()
+            .IsRequired();
+
         builder.Property(o => o.PaymentProvider)
             .HasConversion<int>()
             .IsRequired();
@@ -28,6 +32,13 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(o => o.PaymentReference)
             .HasMaxLength(128)
             .IsRequired();
+
+        builder.Property(o => o.MeetingLocation)
+            .IsRequired()
+            .HasMaxLength(256);
+
+        builder.Property(o => o.MeetingScheduledAt)
+            .HasColumnType("timestamp with time zone");
 
         builder.Property(o => o.CreatedAt)
             .IsRequired()

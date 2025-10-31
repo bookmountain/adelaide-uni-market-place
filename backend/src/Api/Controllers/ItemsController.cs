@@ -71,7 +71,7 @@ public class ItemsController : ControllerBase
             return Unauthorized();
         }
 
-        if (request.Images is null || request.Images.Count == 0)
+        if (request.Images.Count == 0)
         {
             return BadRequest(new { error = "At least one image is required." });
         }
@@ -88,20 +88,17 @@ public class ItemsController : ControllerBase
 
             var created = await CreateItemInternalAsync(sellerId, createRequest, cancellationToken);
 
-            if (request.Images is not null)
+            foreach (var file in request.Images.Where(f => f.Length > 0))
             {
-                foreach (var file in request.Images.Where(f => f.Length > 0))
-                {
-                    await using var stream = file.OpenReadStream();
-                    var uploadCommand = new UploadItemImageCommand(
-                        created.Id,
-                        sellerId,
-                        stream,
-                        file.FileName,
-                        file.ContentType ?? "application/octet-stream");
+                await using var stream = file.OpenReadStream();
+                var uploadCommand = new UploadItemImageCommand(
+                    created.Id,
+                    sellerId,
+                    stream,
+                    file.FileName,
+                    file.ContentType ?? "application/octet-stream");
 
-                    await _sender.Send(uploadCommand, cancellationToken);
-                }
+                await _sender.Send(uploadCommand, cancellationToken);
             }
 
             var enriched = await _sender.Send(new GetItemByIdQuery(created.Id), cancellationToken) ?? created;
