@@ -1,6 +1,44 @@
 # Adelaide University Marketplace – Backend
 
-Backend scaffold for the Adelaide University Marketplace. The service is an ASP.NET Core 8 Web API following a clean architecture layout (`Api`, `Application`, `Domain`, `Infrastructure`, `Contracts`).
+Backend scaffold for the Adelaide University Marketplace. The service is an ASP.NET Core 8 Web API following a clean architecture layout (`Api`, `Application`, `Domain`, `Infrastructure`, `Contracts`). A mobile-first React Native (Expo) client lives in `frontend/` (initialised via `npx @react-native-reusables/cli@latest init`).
+
+## Frontend (React Native iOS starter)
+
+The mobile client targets iOS first using Expo + React Native with TypeScript and the React Native Reusables design system.
+
+### Prerequisites
+
+- Node.js 18+
+- `npm` 9+ (or `pnpm`/`yarn` if you prefer)
+- Xcode with iOS Simulator (for local iOS testing)
+- Expo CLI (`npm install --global expo-cli`) optional but recommended
+
+### Local development
+
+```bash
+cd frontend
+npm install
+npm run ios     # launches Metro + iOS simulator
+# or: npm run start (then scan the QR code with Expo Go)
+```
+
+> If `pod install` fails with `unknown keyword: :privacy_file_aggregation_enabled`, update CocoaPods to ≥ 1.13.0 or rely on the guard already included in `ios/Podfile`.
+
+Project layout:
+
+```
+frontend/
+  App.tsx
+  app.json
+  package.json
+  src/
+    navigation/
+    screens/
+    components/
+    theme/
+```
+
+Top-level screens implemented: Login, Home, Product Detail, Chat, Listing Form, Seller Dashboard (with Settings). Navigation uses React Navigation with a bottom tab layout tuned for Expo.
 
 ## Prerequisites
 
