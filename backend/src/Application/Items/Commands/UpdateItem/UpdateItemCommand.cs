@@ -1,4 +1,5 @@
 using Contracts.DTO.Items;
+using Domain.Shared.Enums;
 using MediatR;
 
 namespace Application.Items.Commands.UpdateItem;
@@ -10,4 +11,8 @@ public sealed record UpdateItemCommand(
     string Title,
     string Description,
     decimal Price,
-    string Status) : IRequest<ItemResponse>;
+    string Status,
+    ItemCondition Condition,
+    string MeetupLocation,
+    string? Brand,
+    bool IsNegotiable) : IRequest<ItemResponse>;

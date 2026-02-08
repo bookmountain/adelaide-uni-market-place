@@ -18,5 +18,15 @@ public sealed class CreateItemCommandValidator : AbstractValidator<CreateItemCom
 
         RuleFor(x => x.CategoryId)
             .NotEmpty();
+
+        RuleFor(x => x.Condition)
+            .IsInEnum();
+
+        RuleFor(x => x.MeetupLocation)
+            .NotEmpty()
+            .MaximumLength(256);
+
+        RuleFor(x => x.Brand)
+            .MaximumLength(128);
     }
 }

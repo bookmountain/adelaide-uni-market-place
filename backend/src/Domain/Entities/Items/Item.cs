@@ -20,6 +20,10 @@ public class Item
         string description,
         decimal price,
         ItemStatus status,
+        ItemCondition condition,
+        string meetupLocation,
+        string? brand,
+        bool isNegotiable,
         DateTimeOffset createdAt,
         DateTimeOffset? updatedAt = null)
     {
@@ -30,6 +34,10 @@ public class Item
         Description = description;
         Price = price;
         Status = status;
+        Condition = condition;
+        MeetupLocation = meetupLocation;
+        Brand = brand;
+        IsNegotiable = isNegotiable;
         CreatedAt = createdAt;
         UpdatedAt = updatedAt;
     }
@@ -41,6 +49,10 @@ public class Item
     public string Description { get; private set; } = string.Empty;
     public decimal Price { get; private set; }
     public ItemStatus Status { get; private set; }
+    public ItemCondition Condition { get; private set; }
+    public string MeetupLocation { get; private set; } = string.Empty;
+    public string? Brand { get; private set; }
+    public bool IsNegotiable { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? UpdatedAt { get; private set; }
 
@@ -48,12 +60,24 @@ public class Item
     public Category? Category { get; private set; }
     public IReadOnlyCollection<ListingImage> Images => _images;
 
-    public void UpdateDetails(string title, string description, decimal price, ItemStatus status)
+    public void UpdateDetails(
+        string title, 
+        string description, 
+        decimal price, 
+        ItemStatus status,
+        ItemCondition condition,
+        string meetupLocation,
+        string? brand,
+        bool isNegotiable)
     {
         Title = title;
         Description = description;
         Price = price;
         Status = status;
+        Condition = condition;
+        MeetupLocation = meetupLocation;
+        Brand = brand;
+        IsNegotiable = isNegotiable;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

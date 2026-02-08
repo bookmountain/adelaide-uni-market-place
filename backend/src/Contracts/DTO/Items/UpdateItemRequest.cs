@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Domain.Shared.Enums;
 
 namespace Contracts.DTO.Items;
 
@@ -18,4 +19,15 @@ public sealed class UpdateItemRequest
 
     [Required]
     public string Status { get; init; } = string.Empty;
+
+    [Required]
+    public ItemCondition Condition { get; init; }
+
+    [Required, MaxLength(256)]
+    public string MeetupLocation { get; init; } = string.Empty;
+
+    [MaxLength(128)]
+    public string? Brand { get; init; }
+
+    public bool IsNegotiable { get; init; }
 }

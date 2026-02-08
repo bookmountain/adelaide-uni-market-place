@@ -35,6 +35,10 @@ public sealed class CreateItemCommandHandler : IRequestHandler<CreateItemCommand
             description: request.Description,
             price: request.Price,
             status: ItemStatus.Active,
+            condition: request.Condition,
+            meetupLocation: request.MeetupLocation,
+            brand: request.Brand,
+            isNegotiable: request.IsNegotiable,
             createdAt: DateTimeOffset.UtcNow);
 
         _dbContext.Items.Add(entity);

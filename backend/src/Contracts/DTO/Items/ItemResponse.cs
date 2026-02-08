@@ -1,3 +1,5 @@
+using Domain.Shared.Enums;
+
 namespace Contracts.DTO.Items;
 
 public sealed record ItemResponse(
@@ -9,6 +11,10 @@ public sealed record ItemResponse(
     string Description,
     decimal Price,
     string Status,
+    ItemCondition Condition,
+    string MeetupLocation,
+    string? Brand,
+    bool IsNegotiable,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     IReadOnlyCollection<ListingImageResponse> Images);

@@ -39,7 +39,15 @@ public sealed class UpdateItemCommandHandler : IRequestHandler<UpdateItemCommand
             throw new InvalidOperationException("Invalid item status.");
         }
 
-        item.UpdateDetails(request.Title, request.Description, request.Price, status);
+        item.UpdateDetails(
+            request.Title, 
+            request.Description, 
+            request.Price, 
+            status,
+            request.Condition,
+            request.MeetupLocation,
+            request.Brand,
+            request.IsNegotiable);
         if (item.CategoryId != request.CategoryId)
         {
             item.ChangeCategory(request.CategoryId);

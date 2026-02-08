@@ -83,7 +83,11 @@ public class ItemsController : ControllerBase
                 CategoryId = request.CategoryId,
                 Title = request.Title,
                 Description = request.Description,
-                Price = request.Price
+                Price = request.Price,
+                Condition = request.Condition,
+                MeetupLocation = request.MeetupLocation,
+                Brand = request.Brand,
+                IsNegotiable = request.IsNegotiable
             };
 
             var created = await CreateItemInternalAsync(sellerId, createRequest, cancellationToken);
@@ -126,7 +130,18 @@ public class ItemsController : ControllerBase
 
         try
         {
-            var command = new UpdateItemCommand(itemId, sellerId, request.CategoryId, request.Title, request.Description, request.Price, request.Status);
+            var command = new UpdateItemCommand(
+                itemId, 
+                sellerId, 
+                request.CategoryId, 
+                request.Title, 
+                request.Description, 
+                request.Price, 
+                request.Status,
+                request.Condition,
+                request.MeetupLocation,
+                request.Brand,
+                request.IsNegotiable);
             var updated = await _sender.Send(command, cancellationToken);
             return Ok(updated);
         }
@@ -245,7 +260,17 @@ public class ItemsController : ControllerBase
 
     private async Task<ItemResponse> CreateItemInternalAsync(Guid sellerId, CreateItemRequest request, CancellationToken cancellationToken)
     {
-        var command = new CreateItemCommand(sellerId, request.CategoryId, request.Title, request.Description, request.Price);
+        var command = new CreateItemCommand(
+            sellerId, 
+            request.CategoryId, 
+            request.Title, 
+            request.Description, 
+            request.Price,
+            request.Condition,
+            request.MeetupLocation,
+            request.Brand,
+            request.IsNegotiable);
+            
         return await _sender.Send(command, cancellationToken);
     }
 
