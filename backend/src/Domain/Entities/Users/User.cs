@@ -62,6 +62,8 @@ public class User
 
     public ICollection<Item> ItemsForSale { get; } = new List<Item>();
     public ICollection<Order> Orders { get; } = new List<Order>();
+    public ICollection<Review> ReviewsGiven { get; } = new List<Review>();
+    public ICollection<Review> ReviewsReceived { get; } = new List<Review>();
 
     public void UpdateProfile(
         string displayName,
