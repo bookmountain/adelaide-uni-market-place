@@ -20,31 +20,6 @@ public sealed class RegisterUserCommandHandler : IRequestHandler<RegisterUserCom
 
     public async Task<RegisterResponse> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
     {
-        if (!request.Email.EndsWith($"@{request.AllowedDomain}", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException($"Email must belong to {request.AllowedDomain} domain.");
-        }
-
-        if (!Enum.IsDefined(typeof(AdelaideDepartment), request.Department))
-        {
-            throw new InvalidOperationException("Invalid department selection.");
-        }
-
-        if (!Enum.IsDefined(typeof(AcademicDegree), request.Degree))
-        {
-            throw new InvalidOperationException("Invalid degree selection.");
-        }
-
-        if (!Enum.IsDefined(typeof(UserSex), request.Sex))
-        {
-            throw new InvalidOperationException("Invalid sex selection.");
-        }
-
-        if (request.Nationality.HasValue && !Enum.IsDefined(typeof(Nationality), request.Nationality.Value))
-        {
-            throw new InvalidOperationException("Invalid nationality selection.");
-        }
-
         var exists = await _dbContext.Users
             .AnyAsync(u => u.Email == request.Email, cancellationToken);
 

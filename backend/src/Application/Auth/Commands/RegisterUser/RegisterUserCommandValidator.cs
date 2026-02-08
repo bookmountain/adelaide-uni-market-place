@@ -9,7 +9,9 @@ public sealed class RegisterUserCommandValidator : AbstractValidator<RegisterUse
     {
         RuleFor(x => x.Email)
             .NotEmpty()
-            .EmailAddress();
+            .EmailAddress()
+            .Must((command, email) => email.EndsWith($"@{command.AllowedDomain}", StringComparison.OrdinalIgnoreCase))
+            .WithMessage(x => $"Email must belong to {x.AllowedDomain} domain.");
 
         RuleFor(x => x.Password)
             .NotEmpty()
