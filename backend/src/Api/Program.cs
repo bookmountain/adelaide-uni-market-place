@@ -2,11 +2,13 @@ using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Text.Json.Serialization;
 using Application;
+using Api.Hubs;
 using Application.Common.Interfaces;
 using Infrastructure.Configuration.Options;
 using Infrastructure.Data;
 using Infrastructure.Data.Seeding;
 using Infrastructure.Storage;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -77,6 +79,8 @@ builder.Services
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
+builder.Services.AddSignalR();
+
 builder.Services
     .AddDbContext<MarketplaceDbContext>(options =>
         options.UseNpgsql(postgresOptions.ConnectionString));
@@ -104,6 +108,21 @@ builder.Services
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(authOptions.AppJwtSigningKey)),
             ValidateLifetime = true
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrWhiteSpace(accessToken) && path.StartsWithSegments("/hubs/chat"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -139,6 +158,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHealthChecks("/healthz");
+app.MapHub<ChatHub>("/hubs/chat");
 app.MapControllers();
 
 Console.WriteLine("Starting application...");

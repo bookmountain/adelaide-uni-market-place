@@ -16,7 +16,8 @@ public class ChatMessage
         Guid toUserId,
         string body,
         DateTimeOffset sentAt,
-        Guid? itemId = null)
+        Guid? itemId = null,
+        string? attachmentUrl = null)
     {
         Id = id;
         ThreadId = threadId;
@@ -25,6 +26,7 @@ public class ChatMessage
         Body = body;
         SentAt = sentAt;
         ItemId = itemId;
+        AttachmentUrl = attachmentUrl;
     }
 
     public Guid Id { get; private set; }
@@ -33,6 +35,7 @@ public class ChatMessage
     public Guid ToUserId { get; private set; }
     public Guid? ItemId { get; private set; }
     public string Body { get; private set; } = string.Empty;
+    public string? AttachmentUrl { get; private set; }
     public DateTimeOffset SentAt { get; private set; }
 
     public User? FromUser { get; private set; }

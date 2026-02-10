@@ -19,6 +19,9 @@ internal sealed class ChatMessageConfiguration : IEntityTypeConfiguration<ChatMe
             .IsRequired()
             .HasMaxLength(2000);
 
+        builder.Property(cm => cm.AttachmentUrl)
+            .HasMaxLength(512);
+
         builder.Property(cm => cm.SentAt)
             .IsRequired()
             .HasColumnType("timestamp with time zone");
