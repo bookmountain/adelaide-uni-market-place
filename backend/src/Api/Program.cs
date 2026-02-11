@@ -2,12 +2,15 @@ using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Text.Json.Serialization;
 using Application;
-using Api.Hubs;
 using Application.Common.Interfaces;
+using Api.Hubs;
 using Infrastructure.Configuration.Options;
 using Infrastructure.Data;
 using Infrastructure.Data.Seeding;
+using Infrastructure.Events;
+using Infrastructure.Messaging;
 using Infrastructure.Storage;
+using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -66,7 +69,7 @@ var authOptions = BindOptions<AuthOptions>(builder.Services, builder.Configurati
 var postgresOptions = BindOptions<PostgresOptions>(builder.Services, builder.Configuration);
 var redisOptions = BindOptions<RedisOptions>(builder.Services, builder.Configuration);
 _ = BindOptions<EmailOptions>(builder.Services, builder.Configuration);
-_ = BindOptions<RabbitMqOptions>(builder.Services, builder.Configuration);
+var rabbitMqOptions = BindOptions<RabbitMqOptions>(builder.Services, builder.Configuration);
 _ = BindOptions<ElasticsearchOptions>(builder.Services, builder.Configuration);
 _ = BindOptions<StripeOptions>(builder.Services, builder.Configuration);
 _ = BindOptions<R2Options>(builder.Services, builder.Configuration);
@@ -81,6 +84,17 @@ builder.Services
 
 builder.Services.AddSignalR();
 
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<ItemCreatedConsumer>();
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host(rabbitMqOptions.Host);
+        cfg.ConfigureEndpoints(context);
+    });
+});
+
 builder.Services
     .AddDbContext<MarketplaceDbContext>(options =>
         options.UseNpgsql(postgresOptions.ConnectionString));
@@ -88,6 +102,7 @@ builder.Services
 builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<MarketplaceDbContext>());
 builder.Services.AddScoped<IEmailSender, Infrastructure.Email.SmtpEmailSender>();
 builder.Services.AddSingleton<IObjectStorageService, R2ObjectStorageService>();
+builder.Services.AddScoped<IEventPublisher, EventPublisher>();
 builder.Services.AddScoped<DatabaseSeeder>();
 
 builder.Services
@@ -188,7 +203,7 @@ static TOptions BindOptions<TOptions>(IServiceCollection services, IConfiguratio
 
 static void ValidateOptions<TOptions>(TOptions options, string sectionName)
 {
-    var validationResults = new List<ValidationResult>();
+    var validationResults = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
     if (!Validator.TryValidateObject(options!, new ValidationContext(options!), validationResults, true))
     {
         var errors = string.Join(", ", validationResults.Select(result => result.ErrorMessage));

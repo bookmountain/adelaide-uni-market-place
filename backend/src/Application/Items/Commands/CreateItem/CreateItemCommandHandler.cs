@@ -1,5 +1,6 @@
 using Application.Common.Interfaces;
 using Contracts.DTO.Items;
+using Contracts.Events;
 using Domain.Entities.Items;
 using Domain.Shared.Enums;
 using Mapster;
@@ -11,10 +12,12 @@ namespace Application.Items.Commands.CreateItem;
 public sealed class CreateItemCommandHandler : IRequestHandler<CreateItemCommand, ItemResponse>
 {
     private readonly IApplicationDbContext _dbContext;
+    private readonly IEventPublisher _eventPublisher;
 
-    public CreateItemCommandHandler(IApplicationDbContext dbContext)
+    public CreateItemCommandHandler(IApplicationDbContext dbContext, IEventPublisher eventPublisher)
     {
         _dbContext = dbContext;
+        _eventPublisher = eventPublisher;
     }
 
     public async Task<ItemResponse> Handle(CreateItemCommand request, CancellationToken cancellationToken)
@@ -44,6 +47,14 @@ public sealed class CreateItemCommandHandler : IRequestHandler<CreateItemCommand
         _dbContext.Items.Add(entity);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _eventPublisher.PublishAsync(new ItemCreatedEvent(
+            entity.Id,
+            entity.SellerId,
+            entity.CategoryId,
+            entity.Price,
+            entity.CreatedAt),
+            cancellationToken);
 
         var result = await _dbContext.Items
             .AsNoTracking()
