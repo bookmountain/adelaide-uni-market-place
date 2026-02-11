@@ -59,7 +59,6 @@ secrets.*
 *.p12
 *.key
 .env
-.env.*
 .env.local
 appsettings.*.Local.json
 local.settings.json
