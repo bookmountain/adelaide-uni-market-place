@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import * as React from 'react';
 import { ScrollView, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +25,11 @@ const SETTINGS_ITEMS = [
 
 export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
+
+  const handleLogout = () => {
+    // Navigate back to login screen and clear navigation stack
+    router.replace('/');
+  };
 
   return (
     <>
@@ -68,7 +73,10 @@ export default function SettingsScreen() {
             ))}
           </View>
 
-          <Button variant="ghost" className="mt-8 h-14 rounded-2xl border border-destructive/40">
+          <Button
+            variant="ghost"
+            className="mt-8 h-14 rounded-2xl border border-destructive/40"
+            onPress={handleLogout}>
             <Icon as={LogOutIcon} className="text-destructive" size={20} />
             <Text className="text-base font-semibold text-destructive">Log out</Text>
           </Button>
