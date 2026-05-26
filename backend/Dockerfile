@@ -1,11 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY Marketplace.sln .
 COPY src/ ./src/
 COPY db/ ./db/
 
-RUN dotnet restore
+RUN dotnet restore src/Api/Api.csproj
 RUN dotnet publish src/Api/Api.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final

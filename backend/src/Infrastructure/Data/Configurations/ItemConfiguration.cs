@@ -28,6 +28,20 @@ internal sealed class ItemConfiguration : IEntityTypeConfiguration<Item>
             .HasConversion<int>()
             .IsRequired();
 
+        builder.Property(i => i.Condition)
+            .HasConversion<int>()
+            .IsRequired();
+
+        builder.Property(i => i.MeetupLocation)
+            .IsRequired()
+            .HasMaxLength(256);
+
+        builder.Property(i => i.Brand)
+            .HasMaxLength(128);
+
+        builder.Property(i => i.IsNegotiable)
+            .IsRequired();
+
         builder.Property(i => i.CreatedAt)
             .IsRequired()
             .HasColumnType("timestamp with time zone");

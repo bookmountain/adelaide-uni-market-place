@@ -42,14 +42,16 @@ Top-level screens implemented: Login, Home, Product Detail, Chat, Listing Form, 
 
 ## Prerequisites
 
--   [.NET SDK 8.0](https://dotnet.microsoft.com/en-us/download) or later
+-   [.NET SDK 8.0](https://dotnet.microsoft.com/en-us/download). The repo pins SDK `8.0.407` via `global.json`.
 
 ## Getting Started
 
 ```bash
 cd backend
 dotnet restore
-ASPNETCORE_ENVIRONMENT=Development dotnet ef database update --project src/Infrastructure/Infrastructure.csproj --startup-project src/Api/Api.csproj
+dotnet build Marketplace.sln --no-restore /m:1 /p:BuildInParallel=false
+dotnet test tests/Application.UnitTests/Application.UnitTests.csproj --no-restore /m:1 /p:BuildInParallel=false
+ASPNETCORE_ENVIRONMENT=Development dotnet ef database update --project src/Infrastructure/Infrastructure.csproj --startup-project src/Infrastructure/Infrastructure.csproj
 dotnet run --project src/Api/Api.csproj
 ```
 

@@ -31,7 +31,8 @@ Work incrementally, favour small, reviewable changes, and keep documentation up 
     /Domain
     /Infrastructure
     /Contracts
-  /tests          (placeholder – add projects when tests are introduced)
+  /tests
+    /Application.UnitTests
 /frontend         (Expo React Native client – iOS-first starter)
 /README.md
 /AGENTS.md
@@ -155,13 +156,16 @@ Work on one theme at a time; keep PRs scoped.
 # Restore & build
 cd backend
 dotnet restore
-dotnet build
+dotnet build Marketplace.sln --no-restore /m:1 /p:BuildInParallel=false
+
+# Run backend unit tests
+dotnet test tests/Application.UnitTests/Application.UnitTests.csproj --no-restore /m:1 /p:BuildInParallel=false
 
 # Apply migrations / update schema
 ASPNETCORE_ENVIRONMENT=Development \
   dotnet ef database update \
     --project src/Infrastructure/Infrastructure.csproj \
-    --startup-project src/Api/Api.csproj
+    --startup-project src/Infrastructure/Infrastructure.csproj
 
 # Run API locally without containers
 ASPNETCORE_ENVIRONMENT=Development \
