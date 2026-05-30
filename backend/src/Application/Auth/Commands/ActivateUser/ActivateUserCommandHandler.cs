@@ -24,7 +24,7 @@ public sealed class ActivateUserCommandHandler : IRequestHandler<ActivateUserCom
 
         if (user.IsActive)
         {
-            return ToDto(user);
+            return AuthUserDtoFactory.FromUser(user);
         }
 
         if (user.ActivationTokenExpiresAt is not null && user.ActivationTokenExpiresAt < DateTimeOffset.UtcNow)
@@ -35,21 +35,6 @@ public sealed class ActivateUserCommandHandler : IRequestHandler<ActivateUserCom
         user.Activate();
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return ToDto(user);
+        return AuthUserDtoFactory.FromUser(user);
     }
-
-    private static AuthUserDto ToDto(Domain.Entities.Users.User user) => new(
-        user.Id,
-        user.Email,
-        user.DisplayName,
-        user.Role,
-        user.Department,
-        user.Degree,
-        user.Sex,
-        user.AvatarUrl,
-        user.Nationality,
-        user.Age,
-        user.Bio,
-        user.AppearInDrawPool,
-        user.IsAdmin);
 }

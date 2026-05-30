@@ -12,6 +12,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
 
 namespace Api.Controllers;
 
@@ -145,6 +146,10 @@ public class AuthController : ControllerBase
             return Unauthorized(new { error = "Invalid or expired refresh token." });
         }
 
+        // Known limitation: validate (in RefreshTokenCommandHandler) and revoke run as two
+        // separate awaits, so two concurrent requests with the same refresh token can both
+        // validate before either revokes (refresh-token replay). Atomic validate-and-revoke
+        // (e.g. Redis GETDEL/Lua in RedisRefreshTokenStore) is a planned hardening follow-up.
         await _refreshTokenStore.RevokeAsync(request.RefreshToken, cancellationToken);
         return Ok(await IssueAuthResponse(user, cancellationToken));
     }
@@ -161,9 +166,14 @@ public class AuthController : ControllerBase
     [Authorize]
     [HttpPost("logout-all")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> LogoutAll(CancellationToken cancellationToken)
     {
-        var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
         await _sender.Send(new LogoutAllCommand(userId), cancellationToken);
         return NoContent();
     }
@@ -175,5 +185,11 @@ public class AuthController : ControllerBase
         await _refreshTokenStore.StoreAsync(
             user.UserId, refreshToken, TimeSpan.FromDays(_options.RefreshTokenDays), cancellationToken);
         return new AuthResponse(accessToken, refreshToken, user);
+    }
+
+    private bool TryGetUserId(out Guid userId)
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return Guid.TryParse(claim, out userId);
     }
 }

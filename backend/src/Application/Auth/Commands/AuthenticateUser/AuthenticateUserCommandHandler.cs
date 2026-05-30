@@ -36,9 +36,7 @@ public sealed class AuthenticateUserCommandHandler : IRequestHandler<Authenticat
 
         await _rateLimiter.ResetAsync(request.Email, request.IpAddress, cancellationToken);
 
-        var dto = new AuthUserDto(
-            user!.Id, user.Email, user.DisplayName, user.Role, user.Department, user.Degree, user.Sex,
-            user.AvatarUrl, user.Nationality, user.Age, user.Bio, user.AppearInDrawPool, user.IsAdmin);
+        var dto = AuthUserDtoFactory.FromUser(user!);
 
         return new AuthenticationResult(dto, IsRateLimited: false);
     }

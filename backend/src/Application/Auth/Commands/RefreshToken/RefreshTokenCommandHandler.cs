@@ -33,8 +33,6 @@ public sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCom
             return null;
         }
 
-        return new AuthUserDto(
-            user.Id, user.Email, user.DisplayName, user.Role, user.Department, user.Degree, user.Sex,
-            user.AvatarUrl, user.Nationality, user.Age, user.Bio, user.AppearInDrawPool, user.IsAdmin);
+        return AuthUserDtoFactory.FromUser(user);
     }
 }

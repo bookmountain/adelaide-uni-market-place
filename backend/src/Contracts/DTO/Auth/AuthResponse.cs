@@ -18,3 +18,21 @@ public sealed record AuthUserDto(
     string? Bio,
     bool AppearInDrawPool,
     bool IsAdmin);
+
+public static class AuthUserDtoFactory
+{
+    public static AuthUserDto FromUser(Domain.Entities.Users.User user) => new(
+        user.Id,
+        user.Email,
+        user.DisplayName,
+        user.Role,
+        user.Department,
+        user.Degree,
+        user.Sex,
+        user.AvatarUrl,
+        user.Nationality,
+        user.Age,
+        user.Bio,
+        user.AppearInDrawPool,
+        user.IsAdmin);
+}
