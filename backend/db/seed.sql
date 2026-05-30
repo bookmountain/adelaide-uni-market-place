@@ -112,3 +112,15 @@ VALUES
     ('30000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000002', 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800', 1, 'seed/laptop-1.jpg'),
     ('30000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000002', 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800', 2, 'seed/laptop-2.jpg')
 ;
+
+-- Seed thread categories
+INSERT INTO thread_categories ("Id","Slug","Name","Description","IconKey","SortOrder","IsActive","CreatedAt")
+VALUES
+ ('a0000000-0000-0000-0000-000000000001','housemate','Housemate','Find a room or a flatmate','home',10,TRUE,NOW()),
+ ('a0000000-0000-0000-0000-000000000002','share-memberships','Share Memberships','Split Spotify, Netflix, and more','share',20,TRUE,NOW()),
+ ('a0000000-0000-0000-0000-000000000003','textbooks','Textbooks','Buy, sell, or borrow course textbooks','book',30,TRUE,NOW()),
+ ('a0000000-0000-0000-0000-000000000004','rides','Rides','Share a ride or carpool','car',40,TRUE,NOW()),
+ ('a0000000-0000-0000-0000-000000000005','lost-and-found','Lost & Found','Lost or found something on campus','search',50,TRUE,NOW()),
+ ('a0000000-0000-0000-0000-000000000006','events','Events','Campus events and meetups','calendar',60,TRUE,NOW()),
+ ('a0000000-0000-0000-0000-000000000007','general','General','Anything else','chat',99,TRUE,NOW())
+ON CONFLICT ("Slug") DO NOTHING;
