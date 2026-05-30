@@ -95,6 +95,7 @@ The API listens on `https://localhost:7123` (Kestrel default) and exposes:
 -   `/api/auth/logout-all` – revoke all refresh tokens for the authenticated user
 -   `/api/users/me` – update the authenticated user's profile (`PATCH`)
 -   `/api/users/me/anon-handle` – get (or generate) the authenticated user's anonymous handle (`GET`)
+-   `/api/threads/...` – community threads feed (see **Threads** section below)
 
 > The API seeds a default category set on startup. If you need deterministic IDs, run the SQL in `db/seed.sql` instead.
 
@@ -249,6 +250,43 @@ Replace `ChangeMe123!` with your password, copy the output hash, and delete the 
 - `DELETE /api/items/{id}` – remove an item.
 - `PATCH /api/users/me` – update the authenticated user's profile fields.
 - `GET /api/users/me/anon-handle` – get (or lazily generate) the authenticated user's anonymous handle.
+
+## Threads
+
+A community feed where students can post, comment, and react — with optional per-post anonymity.
+
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/threads/categories` | List active categories (public) |
+| `POST` | `/api/threads/categories` | [Admin] Create a category |
+| `PATCH` | `/api/threads/categories/{id}` | [Admin] Update a category |
+| `GET` | `/api/threads/feed` | Paginated feed (`?category=&sort=hot\|new\|top&cursor=&pageSize=`) |
+| `GET` | `/api/threads/posts/{id}` | Post detail |
+| `GET` | `/api/threads/posts/{id}/comments` | 2-level comment tree |
+| `POST` | `/api/threads/posts` | Create a post (multipart; `isAnonymous`, `images[]`) |
+| `PATCH` | `/api/threads/posts/{id}` | Author edits title/body |
+| `DELETE` | `/api/threads/posts/{id}` | Author or admin soft-delete |
+| `POST` | `/api/threads/posts/{id}/like` | Toggle like on a post |
+| `POST` | `/api/threads/posts/{id}/comments` | Add a comment (`parentCommentId` optional; max 1 level deep) |
+| `POST` | `/api/threads/comments/{id}/like` | Toggle like on a comment |
+
+### Identity & anonymity
+
+Per-post identity is chosen at creation (`isAnonymous: true/false`) and is **immutable** after posting. Anonymous posts and comments are served under a stable per-user handle (generated once and stored; see `GET /api/users/me/anon-handle`) and never expose the user's real identity through the API.
+
+### Feed backing store
+
+The feed is currently Postgres-backed (cursor-sorted by hot/new/top). It will move to Elasticsearch in a future Read Path plan.
+
+### Seeded categories
+
+Seven categories are seeded on startup: `housemate`, `share-memberships`, `textbooks`, `rides`, `lost-and-found`, `events`, `general`.
+
+### Admin role
+
+Admin endpoints (`POST /api/threads/categories`, `PATCH /api/threads/categories/{id}`) require the `Admin` role, which is granted to users with `IsAdmin = true` in the database.
 
 ## Solution Layout
 

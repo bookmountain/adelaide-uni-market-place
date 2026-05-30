@@ -86,6 +86,26 @@ The committed starter under `frontend/` implements the primary UX screens (login
     -   Categories, Items, ListingImages entities with EF Core migrations.
     -   Item CRUD with validation via FluentValidation.
     -   Image upload/delete endpoints (multipart form-data) storing media in R2.
+-   **Threads**
+    -   Community feed with posts, 2-level comments, and like toggles.
+    -   Per-post anonymous identity (`isAnonymous` flag set at creation, immutable); anonymous content served under a stable per-user handle, never leaking real identity.
+    -   Seven seeded categories: `housemate`, `share-memberships`, `textbooks`, `rides`, `lost-and-found`, `events`, `general`.
+    -   Feed sorted by `hot`, `new`, or `top`; cursor-paginated; currently Postgres-backed (Elasticsearch in the Read Path plan).
+    -   Admin endpoints (`POST/PATCH /api/threads/categories`) require the `Admin` role (`IsAdmin = true`).
+    -   Controllers: `ThreadsController`, `ThreadCategoriesController` (auto-discovered via `AddControllers`).
+    -   Endpoints:
+        -   `GET  /api/threads/categories` – list active categories (public)
+        -   `POST /api/threads/categories` – [Admin] create category
+        -   `PATCH /api/threads/categories/{id}` – [Admin] update category
+        -   `GET  /api/threads/feed?category=&sort=hot|new|top&cursor=&pageSize=`
+        -   `GET  /api/threads/posts/{id}` – post detail
+        -   `GET  /api/threads/posts/{id}/comments` – 2-level comment tree
+        -   `POST /api/threads/posts` – create post (multipart; `isAnonymous`, `images[]`)
+        -   `PATCH /api/threads/posts/{id}` – author edits title/body
+        -   `DELETE /api/threads/posts/{id}` – author or admin soft-delete
+        -   `POST /api/threads/posts/{id}/like` – toggle like
+        -   `POST /api/threads/posts/{id}/comments` – add comment (`parentCommentId` optional, max 1 level)
+        -   `POST /api/threads/comments/{id}/like` – toggle like on a comment
 -   **Infrastructure**
     -   PostgreSQL (Npgsql), Redis, RabbitMQ, Elasticsearch clients configured.
     -   Cloudflare R2 storage abstraction (S3-compatible).
