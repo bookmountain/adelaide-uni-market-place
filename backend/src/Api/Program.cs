@@ -105,6 +105,14 @@ builder.Services.AddSingleton<IObjectStorageService, R2ObjectStorageService>();
 builder.Services.AddScoped<IEventPublisher, EventPublisher>();
 builder.Services.AddScoped<DatabaseSeeder>();
 
+builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(
+    _ => StackExchange.Redis.ConnectionMultiplexer.Connect(redisOptions.ConnectionString));
+
+builder.Services.AddScoped<ITokenService, Infrastructure.Auth.AppJwtTokenService>();
+builder.Services.AddScoped<IRefreshTokenStore, Infrastructure.Auth.RedisRefreshTokenStore>();
+builder.Services.AddScoped<ILoginRateLimiter, Infrastructure.Auth.RedisLoginRateLimiter>();
+builder.Services.AddScoped<IAnonHandleGenerator, Infrastructure.Auth.DefaultAnonHandleGenerator>();
+
 builder.Services
     .AddAuthentication(options =>
     {

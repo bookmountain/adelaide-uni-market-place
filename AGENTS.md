@@ -77,6 +77,11 @@ The committed starter under `frontend/` implements the primary UX screens (login
     -   Activation emails (token expires after 24 hours).
     -   Login requiring activated accounts; application-issued JWTs.
     -   Resend activation endpoint.
+    -   Short-lived access tokens (default 15 min) + long-lived refresh tokens (default 14 days) stored in Redis.
+    -   `POST /api/auth/refresh` – rotate refresh token; `POST /api/auth/logout` / `logout-all` – revoke.
+    -   Redis-backed login rate limiting per email and per IP.
+    -   `PATCH /api/users/me` – update profile; `GET /api/users/me/anon-handle` – lazy anon handle.
+    -   New `Auth__` config keys (all optional with defaults): `AccessTokenMinutes` (15), `RefreshTokenDays` (14), `LoginMaxFailuresPerEmail` (5), `LoginMaxFailuresPerIp` (10), `LoginFailureWindowMinutes` (15).
 -   **Marketplace Domain**
     -   Categories, Items, ListingImages entities with EF Core migrations.
     -   Item CRUD with validation via FluentValidation.
