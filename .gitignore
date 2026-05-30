@@ -1,3 +1,7 @@
+# Superpowers / Claude tooling
+.worktrees/
+.superpowers/
+
 # Visual Studio
 .vs/
 *.user
