@@ -1,5 +1,6 @@
 using Application.Common.Interfaces;
 using Contracts.DTO.Threads;
+using Contracts.Events.Threads;
 using Domain.Entities.Threads;
 using Domain.Shared.Enums;
 using MediatR;
@@ -10,7 +11,13 @@ namespace Application.Threads.Commands.ToggleThreadLike;
 public sealed class ToggleThreadLikeCommandHandler : IRequestHandler<ToggleThreadLikeCommand, LikeResponse>
 {
     private readonly IApplicationDbContext _db;
-    public ToggleThreadLikeCommandHandler(IApplicationDbContext db) => _db = db;
+    private readonly IOutbox _outbox;
+
+    public ToggleThreadLikeCommandHandler(IApplicationDbContext db, IOutbox outbox)
+    {
+        _db = db;
+        _outbox = outbox;
+    }
 
     public async Task<LikeResponse> Handle(ToggleThreadLikeCommand request, CancellationToken ct)
     {
@@ -35,6 +42,7 @@ public sealed class ToggleThreadLikeCommandHandler : IRequestHandler<ToggleThrea
                 post.AdjustLikeCount(-1); liked = false;
             }
             newCount = post.LikeCount;
+            _outbox.Enqueue(ThreadEventTypes.PostLikeChanged, new ThreadPostLikeChanged(post.Id));
         }
         else
         {
@@ -51,6 +59,7 @@ public sealed class ToggleThreadLikeCommandHandler : IRequestHandler<ToggleThrea
                 comment.AdjustLikeCount(-1); liked = false;
             }
             newCount = comment.LikeCount;
+            _outbox.Enqueue(ThreadEventTypes.CommentLikeChanged, new ThreadCommentLikeChanged(comment.PostId, comment.Id));
         }
 
         await _db.SaveChangesAsync(ct);
