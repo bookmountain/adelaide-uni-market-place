@@ -3,6 +3,7 @@ using Domain.Entities.Categories;
 using Domain.Entities.Chats;
 using Domain.Entities.Items;
 using Domain.Entities.Orders;
+using Domain.Entities.Threads;
 using Domain.Entities.Users;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,6 +24,11 @@ public class MarketplaceDbContext : DbContext, IApplicationDbContext
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
     public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<ThreadCategory> ThreadCategories => Set<ThreadCategory>();
+    public DbSet<ThreadPost> ThreadPosts => Set<ThreadPost>();
+    public DbSet<ThreadPostImage> ThreadPostImages => Set<ThreadPostImage>();
+    public DbSet<ThreadComment> ThreadComments => Set<ThreadComment>();
+    public DbSet<ThreadLike> ThreadLikes => Set<ThreadLike>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
