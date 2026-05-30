@@ -29,7 +29,7 @@ public sealed class UpdateDeleteThreadPostTests
     {
         await using var t = await TestDb.CreateAsync();
         var (db, ownerId, post) = await Seed(t);
-        await new UpdateThreadPostCommandHandler(db, new Infrastructure.Outbox.Outbox(db)).Handle(
+        await new UpdateThreadPostCommandHandler(db, new Infrastructure.Outbox.EfOutbox(db)).Handle(
             new UpdateThreadPostCommand(post.Id, ownerId, "New T", "New B"), default);
         var saved = await db.ThreadPosts.FirstAsync(p => p.Id == post.Id);
         Assert.Equal("New T", saved.Title);
@@ -41,7 +41,7 @@ public sealed class UpdateDeleteThreadPostTests
         await using var t = await TestDb.CreateAsync();
         var (db, _, post) = await Seed(t);
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-            new UpdateThreadPostCommandHandler(db, new Infrastructure.Outbox.Outbox(db)).Handle(
+            new UpdateThreadPostCommandHandler(db, new Infrastructure.Outbox.EfOutbox(db)).Handle(
                 new UpdateThreadPostCommand(post.Id, Guid.NewGuid(), "X", "Y"), default));
     }
 
@@ -50,7 +50,7 @@ public sealed class UpdateDeleteThreadPostTests
     {
         await using var t = await TestDb.CreateAsync();
         var (db, _, post) = await Seed(t);
-        await new DeleteThreadPostCommandHandler(db, new Infrastructure.Outbox.Outbox(db)).Handle(
+        await new DeleteThreadPostCommandHandler(db, new Infrastructure.Outbox.EfOutbox(db)).Handle(
             new DeleteThreadPostCommand(post.Id, Guid.NewGuid(), IsAdmin: true), default);
         var saved = await db.ThreadPosts.FirstAsync(p => p.Id == post.Id);
         Assert.True(saved.IsDeleted);
@@ -62,7 +62,7 @@ public sealed class UpdateDeleteThreadPostTests
         await using var t = await TestDb.CreateAsync();
         var (db, _, post) = await Seed(t);
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-            new DeleteThreadPostCommandHandler(db, new Infrastructure.Outbox.Outbox(db)).Handle(
+            new DeleteThreadPostCommandHandler(db, new Infrastructure.Outbox.EfOutbox(db)).Handle(
                 new DeleteThreadPostCommand(post.Id, Guid.NewGuid(), IsAdmin: false), default));
     }
 }

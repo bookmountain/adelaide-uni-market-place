@@ -115,7 +115,7 @@ builder.Services.AddSingleton(_ =>
     return new Elastic.Clients.Elasticsearch.ElasticsearchClient(settings);
 });
 
-builder.Services.AddScoped<Application.Common.Interfaces.IOutbox, Infrastructure.Outbox.Outbox>();
+builder.Services.AddScoped<Application.Common.Interfaces.IOutbox, Infrastructure.Outbox.EfOutbox>();
 builder.Services.AddScoped<Infrastructure.Outbox.OutboxEventDispatcher>();
 builder.Services.AddScoped<Application.Threads.Indexing.ThreadPostDocumentBuilder>();
 builder.Services.AddScoped<Infrastructure.Events.ThreadIndexingService>();

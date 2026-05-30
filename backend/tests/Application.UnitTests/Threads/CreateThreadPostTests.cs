@@ -24,7 +24,7 @@ public sealed class CreateThreadPostTests
         db.Context.ThreadCategories.Add(NewCategory(catId));
         await db.Context.SaveChangesAsync();
 
-        var handler = new CreateThreadPostCommandHandler(db.Context, new CreateThreadPostTestsFakes.FakeStorage(), new CreateThreadPostTestsFakes.FakeSender(db.Context), new Infrastructure.Outbox.Outbox(db.Context));
+        var handler = new CreateThreadPostCommandHandler(db.Context, new CreateThreadPostTestsFakes.FakeStorage(), new CreateThreadPostTestsFakes.FakeSender(db.Context), new Infrastructure.Outbox.EfOutbox(db.Context));
         var postId = await handler.Handle(
             new CreateThreadPostCommand(userId, catId, "Title", "Body", IsAnonymous: false, Images: new List<ThreadPostImageUpload>()), default);
 
@@ -44,7 +44,7 @@ public sealed class CreateThreadPostTests
         await db.Context.SaveChangesAsync();
 
         var storage = new CreateThreadPostTestsFakes.FakeStorage();
-        var handler = new CreateThreadPostCommandHandler(db.Context, storage, new CreateThreadPostTestsFakes.FakeSender(db.Context), new Infrastructure.Outbox.Outbox(db.Context));
+        var handler = new CreateThreadPostCommandHandler(db.Context, storage, new CreateThreadPostTestsFakes.FakeSender(db.Context), new Infrastructure.Outbox.EfOutbox(db.Context));
         var images = new List<ThreadPostImageUpload> { new(new byte[] { 1, 2, 3 }, "image/png", "a.png") };
         var postId = await handler.Handle(new CreateThreadPostCommand(userId, catId, "T", "B", true, images), default);
 
@@ -63,7 +63,7 @@ public sealed class CreateThreadPostTests
         db.Context.Users.Add(NewUser(userId));
         await db.Context.SaveChangesAsync();
 
-        var handler = new CreateThreadPostCommandHandler(db.Context, new CreateThreadPostTestsFakes.FakeStorage(), new CreateThreadPostTestsFakes.FakeSender(db.Context), new Infrastructure.Outbox.Outbox(db.Context));
+        var handler = new CreateThreadPostCommandHandler(db.Context, new CreateThreadPostTestsFakes.FakeStorage(), new CreateThreadPostTestsFakes.FakeSender(db.Context), new Infrastructure.Outbox.EfOutbox(db.Context));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             handler.Handle(new CreateThreadPostCommand(userId, Guid.NewGuid(), "T", "B", false, new List<ThreadPostImageUpload>()), default));
     }

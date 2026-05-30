@@ -24,7 +24,7 @@ public sealed class ThreadIndexingService
 
     public async Task HandlePostChangedAsync(Guid postId, string idempotencyKey, CancellationToken ct)
     {
-        if (!await _idempotency.TryMarkAsync(idempotencyKey, ct)) return;
+        if (await _idempotency.HasProcessedAsync(idempotencyKey, ct)) return;
 
         var doc = await _builder.BuildAsync(postId, ct);
         if (doc is null)
@@ -38,13 +38,15 @@ public sealed class ThreadIndexingService
         }
 
         await _cache.InvalidateAsync(doc?.CategorySlug, ct);
+        await _idempotency.MarkProcessedAsync(idempotencyKey, ct);
     }
 
     public async Task HandlePostDeletedAsync(Guid postId, string idempotencyKey, CancellationToken ct)
     {
-        if (!await _idempotency.TryMarkAsync(idempotencyKey, ct)) return;
+        if (await _idempotency.HasProcessedAsync(idempotencyKey, ct)) return;
         await _index.DeleteAsync(postId, ct);
         await _cache.InvalidateAsync(null, ct);
+        await _idempotency.MarkProcessedAsync(idempotencyKey, ct);
     }
 }
 

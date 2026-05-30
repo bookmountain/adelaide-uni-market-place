@@ -25,7 +25,7 @@ public sealed class OutboxEnqueueTests
         await db.Context.SaveChangesAsync();
 
         var handler = new CreateThreadPostCommandHandler(
-            db.Context, new CreateThreadPostTestsFakes.FakeStorage(), new CreateThreadPostTestsFakes.FakeSender(db.Context), new Infrastructure.Outbox.Outbox(db.Context));
+            db.Context, new CreateThreadPostTestsFakes.FakeStorage(), new CreateThreadPostTestsFakes.FakeSender(db.Context), new Infrastructure.Outbox.EfOutbox(db.Context));
         var postId = await handler.Handle(
             new CreateThreadPostCommand(userId, catId, "T", "B", false, new List<ThreadPostImageUpload>()), default);
 

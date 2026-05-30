@@ -75,4 +75,34 @@ public sealed class ThreadIndexingConsumerTests
 
         Assert.Equal(firstInvalidations, cache.InvalidateCalls); // no extra work
     }
+
+    private sealed class FlakyIndex : Application.Common.Interfaces.IThreadSearchIndex
+    {
+        private readonly InMemoryThreadSearchIndex _inner = new();
+        public int UpsertAttempts { get; private set; }
+        public bool FailNext { get; set; }
+        public Task UpsertAsync(Application.Threads.Indexing.ThreadPostDocument d, CancellationToken ct = default)
+        {
+            UpsertAttempts++;
+            if (FailNext) { FailNext = false; throw new InvalidOperationException("es down"); }
+            return _inner.UpsertAsync(d, ct);
+        }
+        public Task DeleteAsync(Guid postId, CancellationToken ct = default) => _inner.DeleteAsync(postId, ct);
+        public Task<Application.Threads.Indexing.ThreadSearchPage> SearchAsync(Application.Threads.Indexing.ThreadSearchQuery q, CancellationToken ct = default) => _inner.SearchAsync(q, ct);
+    }
+
+    [Fact]
+    public async Task Failed_index_attempt_is_retried_on_redelivery()
+    {
+        await using var t = await TestDb.CreateAsync();
+        var (db, post) = await SeedPost(t);
+        var idx = new FlakyIndex { FailNext = true };
+        var svc = new ThreadIndexingService(new Application.Threads.Indexing.ThreadPostDocumentBuilder(db),
+            idx, new InMemoryThreadFeedCache(), new InMemoryIndexerIdempotencyStore());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.HandlePostChangedAsync(post.Id, "evt-1", default));
+        await svc.HandlePostChangedAsync(post.Id, "evt-1", default); // redelivery, same key
+
+        Assert.Equal(2, idx.UpsertAttempts); // proves it was NOT skipped after the failure
+    }
 }

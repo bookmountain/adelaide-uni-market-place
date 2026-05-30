@@ -28,7 +28,7 @@ public sealed class ToggleThreadLikeTests
     {
         await using var t = await TestDb.CreateAsync();
         var (db, userId, post) = await Seed(t);
-        var handler = new ToggleThreadLikeCommandHandler(db, new Infrastructure.Outbox.Outbox(db));
+        var handler = new ToggleThreadLikeCommandHandler(db, new Infrastructure.Outbox.EfOutbox(db));
 
         var r1 = await handler.Handle(new ToggleThreadLikeCommand(userId, ThreadLikeTarget.Post, post.Id), default);
         Assert.True(r1.Liked);
@@ -46,7 +46,7 @@ public sealed class ToggleThreadLikeTests
     {
         await using var t = await TestDb.CreateAsync();
         var (db, userId, _) = await Seed(t);
-        var handler = new ToggleThreadLikeCommandHandler(db, new Infrastructure.Outbox.Outbox(db));
+        var handler = new ToggleThreadLikeCommandHandler(db, new Infrastructure.Outbox.EfOutbox(db));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             handler.Handle(new ToggleThreadLikeCommand(userId, ThreadLikeTarget.Post, Guid.NewGuid()), default));
     }
