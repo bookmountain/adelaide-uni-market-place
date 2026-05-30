@@ -48,5 +48,8 @@ public sealed class ActivateUserCommandHandler : IRequestHandler<ActivateUserCom
         user.Sex,
         user.AvatarUrl,
         user.Nationality,
-        user.Age);
+        user.Age,
+        user.Bio,
+        user.AppearInDrawPool,
+        user.IsAdmin);
 }

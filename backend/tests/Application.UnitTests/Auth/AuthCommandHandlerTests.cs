@@ -4,6 +4,7 @@ using Application.Auth.Commands.RegisterUser;
 using Application.Auth.Commands.ResendActivationEmail;
 using Application.Common.Interfaces;
 using Application.UnitTests.Common;
+using Application.UnitTests.TestDoubles;
 using Domain.Entities.Users;
 using Domain.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -44,22 +45,22 @@ public sealed class AuthCommandHandlerTests
         db.Context.Users.Add(user);
         await db.Context.SaveChangesAsync();
 
-        var handler = new AuthenticateUserCommandHandler(db.Context);
+        var handler = new AuthenticateUserCommandHandler(db.Context, new InMemoryLoginRateLimiter());
 
         var beforeActivation = await handler.Handle(
-            new AuthenticateUserCommand(user.Email, "ChangeMe123!"),
+            new AuthenticateUserCommand(user.Email, "ChangeMe123!", "1.2.3.4"),
             CancellationToken.None);
 
         user.Activate();
         await db.Context.SaveChangesAsync();
 
         var afterActivation = await handler.Handle(
-            new AuthenticateUserCommand(user.Email, "ChangeMe123!"),
+            new AuthenticateUserCommand(user.Email, "ChangeMe123!", "1.2.3.4"),
             CancellationToken.None);
 
-        Assert.Null(beforeActivation);
-        Assert.NotNull(afterActivation);
-        Assert.Equal(user.Id, afterActivation.UserId);
+        Assert.Null(beforeActivation.User);
+        Assert.NotNull(afterActivation.User);
+        Assert.Equal(user.Id, afterActivation.User!.UserId);
     }
 
     [Fact]

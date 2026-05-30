@@ -2,7 +2,7 @@ using Domain.Shared.Enums;
 
 namespace Contracts.DTO.Auth;
 
-public sealed record AuthResponse(string Token, AuthUserDto User);
+public sealed record AuthResponse(string Token, string RefreshToken, AuthUserDto User);
 
 public sealed record AuthUserDto(
     Guid UserId,
@@ -14,4 +14,7 @@ public sealed record AuthUserDto(
     UserSex Sex,
     string? AvatarUrl,
     Nationality? Nationality,
-    int? Age);
+    int? Age,
+    string? Bio,
+    bool AppearInDrawPool,
+    bool IsAdmin);
