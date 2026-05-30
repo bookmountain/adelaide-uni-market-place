@@ -1,4 +1,6 @@
 using Application.Users.Commands.CreateReview;
+using Application.Users.Commands.GetOrCreateAnonHandle;
+using Application.Users.Commands.UpdateProfile;
 using Application.Users.Queries.GetUserReviews;
 using Contracts.DTO.Users;
 using MediatR;
@@ -60,6 +62,35 @@ public class UsersController : ControllerBase
         {
             return BadRequest(new { error = ex.Message });
         }
+    }
+
+    [HttpPatch("me")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> UpdateMe([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        await _sender.Send(new UpdateProfileCommand(userId, request.Bio, request.AppearInDrawPool), cancellationToken);
+        return NoContent();
+    }
+
+    [HttpGet("me/anon-handle")]
+    [ProducesResponseType(typeof(AnonHandleResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMyAnonHandle(CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var handle = await _sender.Send(new GetOrCreateAnonHandleCommand(userId), cancellationToken);
+        return Ok(new AnonHandleResponse(handle));
     }
 
     private bool TryGetUserId(out Guid userId)
