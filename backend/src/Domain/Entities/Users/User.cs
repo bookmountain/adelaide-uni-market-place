@@ -59,6 +59,10 @@ public class User
     public bool IsActive { get; private set; }
     public string? ActivationToken { get; private set; }
     public DateTimeOffset? ActivationTokenExpiresAt { get; private set; }
+    public string? Bio { get; private set; }
+    public string? AnonHandle { get; private set; }
+    public bool AppearInDrawPool { get; private set; }
+    public bool IsAdmin { get; private set; }
 
     public ICollection<Item> ItemsForSale { get; } = new List<Item>();
     public ICollection<Order> Orders { get; } = new List<Order>();
@@ -102,5 +106,26 @@ public class User
         IsActive = true;
         ActivationToken = null;
         ActivationTokenExpiresAt = null;
+    }
+
+    public void UpdateExtendedProfile(string? bio, bool appearInDrawPool)
+    {
+        Bio = string.IsNullOrWhiteSpace(bio) ? null : bio.Trim();
+        AppearInDrawPool = appearInDrawPool;
+    }
+
+    public void AssignAnonHandle(string handle)
+    {
+        if (!string.IsNullOrWhiteSpace(AnonHandle))
+        {
+            throw new InvalidOperationException("Anonymous handle is already assigned and cannot be changed.");
+        }
+
+        AnonHandle = handle;
+    }
+
+    public void SetAdmin(bool isAdmin)
+    {
+        IsAdmin = isAdmin;
     }
 }
