@@ -14,12 +14,13 @@ public sealed class GetThreadCommentsQueryHandler
 
     public async Task<IReadOnlyList<ThreadCommentResponse>> Handle(GetThreadCommentsQuery request, CancellationToken ct)
     {
-        var comments = await _db.ThreadComments
+        var comments = (await _db.ThreadComments
             .AsNoTracking()
             .Include(c => c.Author)
             .Where(c => c.PostId == request.PostId)
+            .ToListAsync(ct))
             .OrderBy(c => c.CreatedAt)
-            .ToListAsync(ct);
+            .ToList();
 
         // Build a 2-level tree. A deleted comment is shown as a "[removed]" placeholder
         // only if it has surviving replies; otherwise it is omitted.
