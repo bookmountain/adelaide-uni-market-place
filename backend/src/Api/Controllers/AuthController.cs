@@ -180,7 +180,8 @@ public class AuthController : ControllerBase
 
     private async Task<AuthResponse> IssueAuthResponse(AuthUserDto user, CancellationToken cancellationToken)
     {
-        var accessToken = _tokenService.IssueAccessToken(user.UserId, user.Email, user.Role);
+        var role = Application.Auth.RoleResolver.Resolve(user.Role, user.IsAdmin);
+        var accessToken = _tokenService.IssueAccessToken(user.UserId, user.Email, role);
         var refreshToken = _tokenService.GenerateRefreshToken();
         await _refreshTokenStore.StoreAsync(
             user.UserId, refreshToken, TimeSpan.FromDays(_options.RefreshTokenDays), cancellationToken);
