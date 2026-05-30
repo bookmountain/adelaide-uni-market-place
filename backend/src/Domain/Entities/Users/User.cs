@@ -116,6 +116,11 @@ public class User
 
     public void AssignAnonHandle(string handle)
     {
+        if (string.IsNullOrWhiteSpace(handle))
+        {
+            throw new ArgumentException("Handle cannot be empty.", nameof(handle));
+        }
+
         if (!string.IsNullOrWhiteSpace(AnonHandle))
         {
             throw new InvalidOperationException("Anonymous handle is already assigned and cannot be changed.");

@@ -50,4 +50,40 @@ public sealed class UserProfileTests
         Assert.Equal("quiet-koala-4821", user.AnonHandle);
         Assert.Contains("already", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void AssignAnonHandle_throws_ArgumentException_for_empty_or_whitespace_handle(string badHandle)
+    {
+        var user = NewUser();
+
+        var ex = Assert.Throws<ArgumentException>(() => user.AssignAnonHandle(badHandle));
+
+        Assert.Contains("empty", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(user.AnonHandle);
+    }
+
+    [Fact]
+    public void SetAdmin_toggles_IsAdmin_in_both_directions()
+    {
+        var user = NewUser();
+
+        user.SetAdmin(true);
+        Assert.True(user.IsAdmin);
+
+        user.SetAdmin(false);
+        Assert.False(user.IsAdmin);
+    }
+
+    [Fact]
+    public void UpdateExtendedProfile_normalises_whitespace_only_bio_to_null()
+    {
+        var user = NewUser();
+
+        user.UpdateExtendedProfile("   ", appearInDrawPool: true);
+
+        Assert.Null(user.Bio);
+        Assert.True(user.AppearInDrawPool);
+    }
 }
