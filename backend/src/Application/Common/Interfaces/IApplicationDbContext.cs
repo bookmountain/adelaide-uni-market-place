@@ -2,6 +2,7 @@ using Domain.Entities.Categories;
 using Domain.Entities.Chats;
 using Domain.Entities.Items;
 using Domain.Entities.Orders;
+using Domain.Entities.Outbox;
 using Domain.Entities.Threads;
 using Domain.Entities.Users;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,7 @@ public interface IApplicationDbContext
     DbSet<ThreadPostImage> ThreadPostImages { get; }
     DbSet<ThreadComment> ThreadComments { get; }
     DbSet<ThreadLike> ThreadLikes { get; }
+    DbSet<OutboxEvent> OutboxEvents { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
