@@ -170,7 +170,8 @@ builder.Services.AddAuthorization();
 builder.Services
     .AddHealthChecks()
     .AddNpgSql(postgresOptions.ConnectionString, name: "postgres", tags: ["ready"])
-    .AddRedis(redisOptions.ConnectionString, name: "redis", tags: ["ready"]);
+    .AddRedis(redisOptions.ConnectionString, name: "redis", tags: ["ready"])
+    .AddCheck<Api.Health.ElasticsearchHealthCheck>("elasticsearch", tags: ["ready"]);
 
 var app = builder.Build();
 

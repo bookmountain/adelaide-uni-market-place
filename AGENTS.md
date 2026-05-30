@@ -90,14 +90,14 @@ The committed starter under `frontend/` implements the primary UX screens (login
     -   Community feed with posts, 2-level comments, and like toggles.
     -   Per-post anonymous identity (`isAnonymous` flag set at creation, immutable); anonymous content served under a stable per-user handle, never leaking real identity.
     -   Seven seeded categories: `housemate`, `share-memberships`, `textbooks`, `rides`, `lost-and-found`, `events`, `general`.
-    -   Feed sorted by `hot`, `new`, or `top`; cursor-paginated; currently Postgres-backed (Elasticsearch in the Read Path plan).
+    -   Feed sorted by `hot`, `new`, or `top`; cursor-paginated; **Elasticsearch-backed** (read path plan shipped).
     -   Admin endpoints (`POST/PATCH /api/threads/categories`) require the `Admin` role (`IsAdmin = true`).
     -   Controllers: `ThreadsController`, `ThreadCategoriesController` (auto-discovered via `AddControllers`).
     -   Endpoints:
         -   `GET  /api/threads/categories` – list active categories (public)
         -   `POST /api/threads/categories` – [Admin] create category
         -   `PATCH /api/threads/categories/{id}` – [Admin] update category
-        -   `GET  /api/threads/feed?category=&sort=hot|new|top&cursor=&pageSize=`
+        -   `GET  /api/threads/feed?category=&sort=hot|new|top&cursor=&pageSize=&q=` – `q` performs full-text search on title/body via Elasticsearch; first page is Redis-cached (5-min TTL)
         -   `GET  /api/threads/posts/{id}` – post detail
         -   `GET  /api/threads/posts/{id}/comments` – 2-level comment tree
         -   `POST /api/threads/posts` – create post (multipart; `isAnonymous`, `images[]`)
@@ -106,6 +106,16 @@ The committed starter under `frontend/` implements the primary UX screens (login
         -   `POST /api/threads/posts/{id}/like` – toggle like
         -   `POST /api/threads/posts/{id}/comments` – add comment (`parentCommentId` optional, max 1 level)
         -   `POST /api/threads/comments/{id}/like` – toggle like on a comment
+
+    #### Read path (threads search)
+
+    Thread writes are propagated to Elasticsearch through a transactional-outbox pipeline:
+
+    - **Transactional outbox:** write handlers append an `outbox_events` row in the same EF Core transaction as the domain change (no dual-write).
+    - **OutboxPublisher:** `BackgroundService` that polls unpublished rows and publishes typed events to RabbitMQ via MassTransit.
+    - **ThreadIndexingConsumer:** rebuilds each post's document from Postgres (anonymity applied at index time — anonymous posts never carry real identity in the index), then upserts/deletes it in the `threads` Elasticsearch index. Idempotency is enforced via a Redis-backed processed-key set.
+    - **Redis hot-feed cache:** the consumer invalidates the cache on every index change; `GET /api/threads/feed` repopulates a 5-min TTL entry on first request.
+    - The `threads` ES index is auto-created on startup. Required config: `Elastic__Uri` and `RabbitMq__Host` (both already documented).
 -   **Infrastructure**
     -   PostgreSQL (Npgsql), Redis, RabbitMQ, Elasticsearch clients configured.
     -   Cloudflare R2 storage abstraction (S3-compatible).
