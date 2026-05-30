@@ -28,7 +28,8 @@ INSERT INTO users (
     "Age",
     "IsActive",
     "ActivationToken",
-    "ActivationTokenExpiresAt"
+    "ActivationTokenExpiresAt",
+    "IsAdmin"
 )
 VALUES (
     '11111111-2222-3333-4444-555555555555',
@@ -45,7 +46,8 @@ VALUES (
     21,
     TRUE,
     NULL,
-    NULL
+    NULL,
+    TRUE
 )
 ;
 

@@ -85,6 +85,24 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.ActivationTokenExpiresAt)
             .HasColumnType("timestamp with time zone");
 
+        builder.Property(u => u.Bio)
+            .HasMaxLength(280);
+
+        builder.Property(u => u.AnonHandle)
+            .HasMaxLength(64);
+
+        builder.Property(u => u.AppearInDrawPool)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(u => u.IsAdmin)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.HasIndex(u => u.AnonHandle)
+            .IsUnique()
+            .HasFilter("\"AnonHandle\" IS NOT NULL");
+
         builder.HasIndex(u => u.Email)
             .IsUnique();
 

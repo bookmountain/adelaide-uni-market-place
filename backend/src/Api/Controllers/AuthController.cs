@@ -1,14 +1,18 @@
-using Api.Auth;
 using Application.Auth.Commands.ActivateUser;
 using Application.Auth.Commands.AuthenticateUser;
+using Application.Auth.Commands.Logout;
+using Application.Auth.Commands.LogoutAll;
+using Application.Auth.Commands.RefreshToken;
 using Application.Auth.Commands.RegisterUser;
 using Application.Auth.Commands.ResendActivationEmail;
+using Application.Common.Interfaces;
 using Contracts.DTO.Auth;
 using Infrastructure.Configuration.Options;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
 
 namespace Api.Controllers;
 
@@ -18,11 +22,19 @@ public class AuthController : ControllerBase
 {
     private readonly ISender _sender;
     private readonly AuthOptions _options;
+    private readonly ITokenService _tokenService;
+    private readonly IRefreshTokenStore _refreshTokenStore;
 
-    public AuthController(ISender sender, IOptions<AuthOptions> options)
+    public AuthController(
+        ISender sender,
+        IOptions<AuthOptions> options,
+        ITokenService tokenService,
+        IRefreshTokenStore refreshTokenStore)
     {
         _sender = sender;
         _options = options.Value;
+        _tokenService = tokenService;
+        _refreshTokenStore = refreshTokenStore;
     }
 
     [AllowAnonymous]
@@ -46,8 +58,7 @@ public class AuthController : ControllerBase
 
         try
         {
-            var response = await _sender.Send(command, cancellationToken);
-            return Ok(response);
+            return Ok(await _sender.Send(command, cancellationToken));
         }
         catch (InvalidOperationException ex)
         {
@@ -61,12 +72,9 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ResendActivation([FromBody] ResendActivationRequest request, CancellationToken cancellationToken)
     {
-        var command = new ResendActivationEmailCommand(request.Email, _options.ActivationBaseUrl);
-
         try
         {
-            var response = await _sender.Send(command, cancellationToken);
-            return Ok(response);
+            return Ok(await _sender.Send(new ResendActivationEmailCommand(request.Email, _options.ActivationBaseUrl), cancellationToken));
         }
         catch (InvalidOperationException ex)
         {
@@ -78,16 +86,24 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        var user = await _sender.Send(new AuthenticateUserCommand(request.Email, request.Password), cancellationToken);
-        if (user is null)
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var result = await _sender.Send(new AuthenticateUserCommand(request.Email, request.Password, ip), cancellationToken);
+
+        if (result.IsRateLimited)
+        {
+            Response.Headers.RetryAfter = (_options.LoginFailureWindowMinutes * 60).ToString();
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { error = "Too many failed login attempts. Try again later." });
+        }
+
+        if (result.User is null)
         {
             return Unauthorized(new { error = "Invalid credentials or account inactive." });
         }
 
-        var token = IssueToken(user);
-        return Ok(new AuthResponse(token, user));
+        return Ok(await IssueAuthResponse(result.User, cancellationToken));
     }
 
     [AllowAnonymous]
@@ -110,8 +126,7 @@ public class AuthController : ControllerBase
                 return NotFound(new { error = "Activation token invalid." });
             }
 
-            var jwt = IssueToken(user);
-            return Ok(new AuthResponse(jwt, user));
+            return Ok(await IssueAuthResponse(user, cancellationToken));
         }
         catch (InvalidOperationException ex)
         {
@@ -119,13 +134,62 @@ public class AuthController : ControllerBase
         }
     }
 
-    private string IssueToken(AuthUserDto user)
+    [AllowAnonymous]
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
     {
-        return AppJwt.Issue(
-            issuer: _options.AppJwtIssuer,
-            signingKey: _options.AppJwtSigningKey,
-            userId: user.UserId.ToString(),
-            email: user.Email,
-            role: user.Role);
+        var user = await _sender.Send(new RefreshTokenCommand(request.RefreshToken), cancellationToken);
+        if (user is null)
+        {
+            return Unauthorized(new { error = "Invalid or expired refresh token." });
+        }
+
+        // Known limitation: validate (in RefreshTokenCommandHandler) and revoke run as two
+        // separate awaits, so two concurrent requests with the same refresh token can both
+        // validate before either revokes (refresh-token replay). Atomic validate-and-revoke
+        // (e.g. Redis GETDEL/Lua in RedisRefreshTokenStore) is a planned hardening follow-up.
+        await _refreshTokenStore.RevokeAsync(request.RefreshToken, cancellationToken);
+        return Ok(await IssueAuthResponse(user, cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        await _sender.Send(new LogoutCommand(request.RefreshToken), cancellationToken);
+        return NoContent();
+    }
+
+    [Authorize]
+    [HttpPost("logout-all")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> LogoutAll(CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        await _sender.Send(new LogoutAllCommand(userId), cancellationToken);
+        return NoContent();
+    }
+
+    private async Task<AuthResponse> IssueAuthResponse(AuthUserDto user, CancellationToken cancellationToken)
+    {
+        var accessToken = _tokenService.IssueAccessToken(user.UserId, user.Email, user.Role);
+        var refreshToken = _tokenService.GenerateRefreshToken();
+        await _refreshTokenStore.StoreAsync(
+            user.UserId, refreshToken, TimeSpan.FromDays(_options.RefreshTokenDays), cancellationToken);
+        return new AuthResponse(accessToken, refreshToken, user);
+    }
+
+    private bool TryGetUserId(out Guid userId)
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return Guid.TryParse(claim, out userId);
     }
 }

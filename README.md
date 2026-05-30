@@ -90,6 +90,11 @@ The API listens on `https://localhost:7123` (Kestrel default) and exposes:
 -   `/api/categories` – public category listing
 -   `/api/items` – authenticated CRUD for marketplace items
 -   `/api/orders` – create an order (in-person delivery) and list buyer orders
+-   `/api/auth/refresh` – rotate a refresh token and obtain a new access token
+-   `/api/auth/logout` – revoke the current refresh token
+-   `/api/auth/logout-all` – revoke all refresh tokens for the authenticated user
+-   `/api/users/me` – update the authenticated user's profile (`PATCH`)
+-   `/api/users/me/anon-handle` – get (or generate) the authenticated user's anonymous handle (`GET`)
 
 > The API seeds a default category set on startup. If you need deterministic IDs, run the SQL in `db/seed.sql` instead.
 
@@ -104,6 +109,11 @@ Set the following environment variables (or override in `backend/src/Api/appsett
 | `Auth__AppJwtSigningKey`                | Symmetric signing key used for app-issued JWTs            |
 | `Auth__AllowedEmailDomain`              | Email domain required for sign-in                         |
 | `Auth__ActivationBaseUrl`              | Base URL used in activation emails                        |
+| `Auth__AccessTokenMinutes`              | Access token lifetime in minutes (default: `15`)          |
+| `Auth__RefreshTokenDays`                | Refresh token lifetime in days (default: `14`)            |
+| `Auth__LoginMaxFailuresPerEmail`        | Max failed logins per email before lockout (default: `5`) |
+| `Auth__LoginMaxFailuresPerIp`           | Max failed logins per IP before lockout (default: `10`)   |
+| `Auth__LoginFailureWindowMinutes`       | Rolling window for login failure counters (default: `15`) |
 | `Postgres__ConnectionString`            | Connection string for the marketplace PostgreSQL database |
 | `Redis__ConnectionString`               | Connection string for Redis cache/pub-sub                 |
 | `RabbitMq__Host`                        | Connection URI for RabbitMQ                               |
@@ -187,7 +197,7 @@ Call `POST /api/auth/login` with:
 }
 ```
 
-On success you receive the same `AuthResponse` payload. Use `Authorization: Bearer <jwt>` for all `/api/items` operations.
+On success you receive `{ token, refreshToken, user }`. The `token` is a short-lived JWT (default 15 minutes). Store `refreshToken` and call `POST /api/auth/refresh` with `{ refreshToken }` before the access token expires to rotate to a new pair. Use `Authorization: Bearer <token>` for all authenticated endpoints.
 
 ### Testing via Swagger
 
@@ -228,12 +238,17 @@ Replace `ChangeMe123!` with your password, copy the output hash, and delete the 
 
 - `POST /api/auth/register` – create a marketplace account (inactive until activated).
 - `GET /api/auth/activate?token=<value>` – confirm registration using the emailed token.
-- `POST /api/auth/login` – obtain JWT for an active account.
+- `POST /api/auth/login` – obtain `{ token, refreshToken, user }` for an active account; access token is short-lived (15 min default).
+- `POST /api/auth/refresh` – exchange a valid refresh token for a new `{ token, refreshToken }` pair.
+- `POST /api/auth/logout` – revoke the supplied refresh token.
+- `POST /api/auth/logout-all` – revoke all refresh tokens for the authenticated user.
 - `GET /api/categories` – list all categories.
 - `GET /api/items` – list items (Bearer token required).
 - `POST /api/items` – create item for the authenticated user.
 - `PUT /api/items/{id}` – update existing item.
 - `DELETE /api/items/{id}` – remove an item.
+- `PATCH /api/users/me` – update the authenticated user's profile fields.
+- `GET /api/users/me/anon-handle` – get (or lazily generate) the authenticated user's anonymous handle.
 
 ## Solution Layout
 

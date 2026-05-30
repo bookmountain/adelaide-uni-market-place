@@ -42,7 +42,11 @@ namespace Infrastructure.Migrations
                     Age = table.Column<int>(type: "integer", nullable: true),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     ActivationToken = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
-                    ActivationTokenExpiresAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                    ActivationTokenExpiresAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    Bio = table.Column<string>(type: "character varying(280)", maxLength: 280, nullable: true),
+                    AnonHandle = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    AppearInDrawPool = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    IsAdmin = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -60,6 +64,10 @@ namespace Infrastructure.Migrations
                     Description = table.Column<string>(type: "text", nullable: false),
                     Price = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
+                    Condition = table.Column<int>(type: "integer", nullable: false),
+                    MeetupLocation = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    Brand = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
+                    IsNegotiable = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
                 },
@@ -88,8 +96,11 @@ namespace Infrastructure.Migrations
                     BuyerId = table.Column<Guid>(type: "uuid", nullable: false),
                     Total = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
+                    DeliveryMethod = table.Column<int>(type: "integer", nullable: false),
                     PaymentProvider = table.Column<int>(type: "integer", nullable: false),
                     PaymentReference = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    MeetingLocation = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    MeetingScheduledAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -113,6 +124,7 @@ namespace Infrastructure.Migrations
                     ToUserId = table.Column<Guid>(type: "uuid", nullable: false),
                     ItemId = table.Column<Guid>(type: "uuid", nullable: true),
                     Body = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    AttachmentUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
                     SentAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -186,6 +198,41 @@ namespace Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "reviews",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ReviewerId = table.Column<Guid>(type: "uuid", nullable: false),
+                    TargetUserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Comment = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    Rating = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    OrderId = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_reviews", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_reviews_orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "orders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_reviews_users_ReviewerId",
+                        column: x => x.ReviewerId,
+                        principalTable: "users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_reviews_users_TargetUserId",
+                        column: x => x.TargetUserId,
+                        principalTable: "users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_categories_Slug",
                 table: "categories",
@@ -244,6 +291,29 @@ namespace Infrastructure.Migrations
                 column: "BuyerId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_reviews_OrderId",
+                table: "reviews",
+                column: "OrderId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_reviews_ReviewerId",
+                table: "reviews",
+                column: "ReviewerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_reviews_TargetUserId",
+                table: "reviews",
+                column: "TargetUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_users_AnonHandle",
+                table: "users",
+                column: "AnonHandle",
+                unique: true,
+                filter: "\"AnonHandle\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_users_Email",
                 table: "users",
                 column: "Email",
@@ -261,6 +331,9 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "order_items");
+
+            migrationBuilder.DropTable(
+                name: "reviews");
 
             migrationBuilder.DropTable(
                 name: "items");
