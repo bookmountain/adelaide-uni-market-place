@@ -3,6 +3,7 @@ using Domain.Entities.Categories;
 using Domain.Entities.Chats;
 using Domain.Entities.Items;
 using Domain.Entities.Orders;
+using Domain.Entities.Outbox;
 using Domain.Entities.Threads;
 using Domain.Entities.Users;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,7 @@ public class MarketplaceDbContext : DbContext, IApplicationDbContext
     public DbSet<ThreadPostImage> ThreadPostImages => Set<ThreadPostImage>();
     public DbSet<ThreadComment> ThreadComments => Set<ThreadComment>();
     public DbSet<ThreadLike> ThreadLikes => Set<ThreadLike>();
+    public DbSet<OutboxEvent> OutboxEvents => Set<OutboxEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

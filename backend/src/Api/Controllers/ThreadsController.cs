@@ -27,9 +27,9 @@ public class ThreadsController : ControllerBase
     [HttpGet("feed")]
     [ProducesResponseType(typeof(ThreadFeedResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Feed(
-        [FromQuery] string? category, [FromQuery] string sort = "hot",
+        [FromQuery] string? category, [FromQuery] string sort = "hot", [FromQuery] string? q = null,
         [FromQuery] string? cursor = null, [FromQuery] int pageSize = 20, CancellationToken ct = default)
-        => Ok(await _sender.Send(new GetThreadFeedQuery(category, sort, cursor, pageSize), ct));
+        => Ok(await _sender.Send(new GetThreadFeedQuery(category, sort, q, cursor, pageSize), ct));
 
     [HttpGet("posts/{postId:guid}")]
     [ProducesResponseType(typeof(ThreadPostDetailResponse), StatusCodes.Status200OK)]

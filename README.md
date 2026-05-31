@@ -262,7 +262,7 @@ A community feed where students can post, comment, and react — with optional p
 | `GET` | `/api/threads/categories` | List active categories (public) |
 | `POST` | `/api/threads/categories` | [Admin] Create a category |
 | `PATCH` | `/api/threads/categories/{id}` | [Admin] Update a category |
-| `GET` | `/api/threads/feed` | Paginated feed (`?category=&sort=hot\|new\|top&cursor=&pageSize=`) |
+| `GET` | `/api/threads/feed` | Paginated feed (`?category=&sort=hot\|new\|top&cursor=&pageSize=&q=`) — `q` performs full-text search on title/body via Elasticsearch |
 | `GET` | `/api/threads/posts/{id}` | Post detail |
 | `GET` | `/api/threads/posts/{id}/comments` | 2-level comment tree |
 | `POST` | `/api/threads/posts` | Create a post (multipart; `isAnonymous`, `images[]`) |
@@ -276,9 +276,17 @@ A community feed where students can post, comment, and react — with optional p
 
 Per-post identity is chosen at creation (`isAnonymous: true/false`) and is **immutable** after posting. Anonymous posts and comments are served under a stable per-user handle (generated once and stored; see `GET /api/users/me/anon-handle`) and never expose the user's real identity through the API.
 
-### Feed backing store
+### Read path (threads search)
 
-The feed is currently Postgres-backed (cursor-sorted by hot/new/top). It will move to Elasticsearch in a future Read Path plan.
+The thread feed read path runs through an Elasticsearch-backed pipeline:
+
+- **Transactional outbox:** every thread write handler (create, update, delete, like, comment) appends a row to `outbox_events` in the **same** EF Core transaction — no dual-write risk.
+- **OutboxPublisher:** a `BackgroundService` that polls unpublished `outbox_events` rows and publishes typed events to RabbitMQ via MassTransit (at-least-once delivery).
+- **ThreadIndexingConsumer:** a MassTransit consumer that rebuilds the post's denormalised document directly from Postgres on each event (anonymity applied at index time — anonymous posts never carry real identity in the `threads` Elasticsearch index), then upserts or deletes it. Each event is idempotency-gated via a Redis-backed processed-key set, so replays are safe.
+- **Redis hot-feed cache:** after every index change, the consumer invalidates a Redis cache key (5-min TTL) so that the next `GET /api/threads/feed` request repopulates it.
+- **`GET /api/threads/feed`** now reads from Elasticsearch (with an optional `q=` full-text search parameter that matches title and body) and serves the first page from the Redis cache on subsequent requests.
+
+The `threads` Elasticsearch index is auto-created on startup. Required configuration: `Elastic__Uri` (already documented) and `RabbitMq__Host` (already documented).
 
 ### Seeded categories
 

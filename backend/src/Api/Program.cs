@@ -70,7 +70,7 @@ var postgresOptions = BindOptions<PostgresOptions>(builder.Services, builder.Con
 var redisOptions = BindOptions<RedisOptions>(builder.Services, builder.Configuration);
 _ = BindOptions<EmailOptions>(builder.Services, builder.Configuration);
 var rabbitMqOptions = BindOptions<RabbitMqOptions>(builder.Services, builder.Configuration);
-_ = BindOptions<ElasticsearchOptions>(builder.Services, builder.Configuration);
+var elasticOptions = BindOptions<ElasticsearchOptions>(builder.Services, builder.Configuration);
 _ = BindOptions<StripeOptions>(builder.Services, builder.Configuration);
 _ = BindOptions<R2Options>(builder.Services, builder.Configuration);
 
@@ -87,6 +87,7 @@ builder.Services.AddSignalR();
 builder.Services.AddMassTransit(x =>
 {
     x.AddConsumer<ItemCreatedConsumer>();
+    x.AddConsumer<Infrastructure.Events.ThreadIndexingConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {
@@ -107,6 +108,22 @@ builder.Services.AddScoped<DatabaseSeeder>();
 
 builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(
     _ => StackExchange.Redis.ConnectionMultiplexer.Connect(redisOptions.ConnectionString));
+
+builder.Services.AddSingleton(_ =>
+{
+    var settings = new Elastic.Clients.Elasticsearch.ElasticsearchClientSettings(new Uri(elasticOptions.Uri));
+    return new Elastic.Clients.Elasticsearch.ElasticsearchClient(settings);
+});
+
+builder.Services.AddScoped<Application.Common.Interfaces.IOutbox, Infrastructure.Outbox.EfOutbox>();
+builder.Services.AddScoped<Infrastructure.Outbox.OutboxEventDispatcher>();
+builder.Services.AddScoped<Application.Threads.Indexing.ThreadPostDocumentBuilder>();
+builder.Services.AddScoped<Infrastructure.Events.ThreadIndexingService>();
+builder.Services.AddScoped<Application.Common.Interfaces.IThreadSearchIndex, Infrastructure.Search.ElasticThreadSearchIndex>();
+builder.Services.AddScoped<Application.Common.Interfaces.IThreadFeedCache, Infrastructure.Caching.RedisThreadFeedCache>();
+builder.Services.AddScoped<Application.Common.Interfaces.IIndexerIdempotencyStore, Infrastructure.Caching.RedisIndexerIdempotencyStore>();
+builder.Services.AddHostedService<Infrastructure.Outbox.OutboxPublisher>();
+builder.Services.AddHostedService<Infrastructure.Search.ThreadSearchIndexBootstrapper>();
 
 builder.Services.AddScoped<ITokenService, Infrastructure.Auth.AppJwtTokenService>();
 builder.Services.AddScoped<IRefreshTokenStore, Infrastructure.Auth.RedisRefreshTokenStore>();
@@ -153,7 +170,8 @@ builder.Services.AddAuthorization();
 builder.Services
     .AddHealthChecks()
     .AddNpgSql(postgresOptions.ConnectionString, name: "postgres", tags: ["ready"])
-    .AddRedis(redisOptions.ConnectionString, name: "redis", tags: ["ready"]);
+    .AddRedis(redisOptions.ConnectionString, name: "redis", tags: ["ready"])
+    .AddCheck<Api.Health.ElasticsearchHealthCheck>("elasticsearch", tags: ["ready"]);
 
 var app = builder.Build();
 

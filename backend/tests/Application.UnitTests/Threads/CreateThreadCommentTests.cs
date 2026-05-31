@@ -48,7 +48,7 @@ public sealed class CreateThreadCommentTests
     {
         await using var t = await TestDb.CreateAsync();
         var (db, userId, post) = await Seed(t);
-        var handler = new CreateThreadCommentCommandHandler(db, new FakeSender(db));
+        var handler = new CreateThreadCommentCommandHandler(db, new FakeSender(db), new Infrastructure.Outbox.EfOutbox(db));
 
         await handler.Handle(new CreateThreadCommentCommand(post.Id, null, userId, false, "hello"), default);
 
@@ -61,7 +61,7 @@ public sealed class CreateThreadCommentTests
     {
         await using var t = await TestDb.CreateAsync();
         var (db, userId, post) = await Seed(t);
-        var handler = new CreateThreadCommentCommandHandler(db, new FakeSender(db));
+        var handler = new CreateThreadCommentCommandHandler(db, new FakeSender(db), new Infrastructure.Outbox.EfOutbox(db));
         var topId = await handler.Handle(new CreateThreadCommentCommand(post.Id, null, userId, false, "top"), default);
 
         var replyId = await handler.Handle(new CreateThreadCommentCommand(post.Id, topId, userId, false, "reply"), default);
@@ -73,7 +73,7 @@ public sealed class CreateThreadCommentTests
     {
         await using var t = await TestDb.CreateAsync();
         var (db, userId, post) = await Seed(t);
-        var handler = new CreateThreadCommentCommandHandler(db, new FakeSender(db));
+        var handler = new CreateThreadCommentCommandHandler(db, new FakeSender(db), new Infrastructure.Outbox.EfOutbox(db));
         var topId = await handler.Handle(new CreateThreadCommentCommand(post.Id, null, userId, false, "top"), default);
         var replyId = await handler.Handle(new CreateThreadCommentCommand(post.Id, topId, userId, false, "reply"), default);
 
@@ -86,7 +86,7 @@ public sealed class CreateThreadCommentTests
     {
         await using var t = await TestDb.CreateAsync();
         var (db, userId, post) = await Seed(t, locked: true);
-        var handler = new CreateThreadCommentCommandHandler(db, new FakeSender(db));
+        var handler = new CreateThreadCommentCommandHandler(db, new FakeSender(db), new Infrastructure.Outbox.EfOutbox(db));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             handler.Handle(new CreateThreadCommentCommand(post.Id, null, userId, false, "x"), default));
     }

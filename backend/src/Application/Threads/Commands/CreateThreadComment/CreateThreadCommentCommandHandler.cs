@@ -1,5 +1,6 @@
 using Application.Common.Interfaces;
 using Application.Users.Commands.GetOrCreateAnonHandle;
+using Contracts.Events.Threads;
 using Domain.Entities.Threads;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -10,11 +11,13 @@ public sealed class CreateThreadCommentCommandHandler : IRequestHandler<CreateTh
 {
     private readonly IApplicationDbContext _db;
     private readonly ISender _sender;
+    private readonly IOutbox _outbox;
 
-    public CreateThreadCommentCommandHandler(IApplicationDbContext db, ISender sender)
+    public CreateThreadCommentCommandHandler(IApplicationDbContext db, ISender sender, IOutbox outbox)
     {
         _db = db;
         _sender = sender;
+        _outbox = outbox;
     }
 
     public async Task<Guid> Handle(CreateThreadCommentCommand request, CancellationToken ct)
@@ -46,6 +49,7 @@ public sealed class CreateThreadCommentCommandHandler : IRequestHandler<CreateTh
             request.AuthorUserId, request.IsAnonymous, request.Body);
         _db.ThreadComments.Add(comment);
         post.RegisterCommentAdded(DateTimeOffset.UtcNow);
+        _outbox.Enqueue(ThreadEventTypes.CommentCreated, new ThreadCommentCreated(comment.PostId, comment.Id));
 
         await _db.SaveChangesAsync(ct);
         return comment.Id;

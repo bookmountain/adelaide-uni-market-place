@@ -1,8 +1,10 @@
 using System.Text.Json;
+using Application.Threads.Indexing;
 using Application.Threads.Queries.GetThreadComments;
 using Application.Threads.Queries.GetThreadFeed;
 using Application.Threads.Queries.GetThreadPost;
 using Application.UnitTests.Common;
+using Application.UnitTests.TestDoubles;
 using Domain.Entities.Threads;
 using Domain.Entities.Users;
 using Domain.Shared.Enums;
@@ -70,8 +72,18 @@ public sealed class AnonLeakContractTests
         post.RegisterCommentAdded(DateTimeOffset.UtcNow);
         await t.Context.SaveChangesAsync();
 
+        // Build an anon document from the same SQLite context via the builder
+        // so the AuthorRef is exactly what the builder yields (anon handle, null userId/displayName).
+        var builder = new ThreadPostDocumentBuilder(t.Context);
+        var doc = await builder.BuildAsync(post.Id, default);
+        Assert.NotNull(doc);
+
+        var idx = new InMemoryThreadSearchIndex();
+        await idx.UpsertAsync(doc!);
+
         var detail = await new GetThreadPostQueryHandler(t.Context).Handle(new GetThreadPostQuery(post.Id), default);
-        var feed = await new GetThreadFeedQueryHandler(t.Context).Handle(new GetThreadFeedQuery(null, "new", null, 10), default);
+        var feed = await new GetThreadFeedQueryHandler(idx, new InMemoryThreadFeedCache())
+            .Handle(new GetThreadFeedQuery(null, "new", null, null, 10), default);
         var comments = await new GetThreadCommentsQueryHandler(t.Context).Handle(new GetThreadCommentsQuery(post.Id), default);
 
         AssertNoIdentityLeak(JsonSerializer.Serialize(detail, Json), realName, userId);

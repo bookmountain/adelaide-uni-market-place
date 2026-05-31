@@ -1,4 +1,5 @@
 using Application.Common.Interfaces;
+using Contracts.Events.Threads;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,7 +8,13 @@ namespace Application.Threads.Commands.DeleteThreadPost;
 public sealed class DeleteThreadPostCommandHandler : IRequestHandler<DeleteThreadPostCommand>
 {
     private readonly IApplicationDbContext _db;
-    public DeleteThreadPostCommandHandler(IApplicationDbContext db) => _db = db;
+    private readonly IOutbox _outbox;
+
+    public DeleteThreadPostCommandHandler(IApplicationDbContext db, IOutbox outbox)
+    {
+        _db = db;
+        _outbox = outbox;
+    }
 
     public async Task Handle(DeleteThreadPostCommand request, CancellationToken ct)
     {
@@ -18,6 +25,7 @@ public sealed class DeleteThreadPostCommandHandler : IRequestHandler<DeleteThrea
             throw new UnauthorizedAccessException("Not allowed to delete this post.");
         }
         post.SoftDelete();
+        _outbox.Enqueue(ThreadEventTypes.PostDeleted, new ThreadPostDeleted(post.Id));
         await _db.SaveChangesAsync(ct);
     }
 }
