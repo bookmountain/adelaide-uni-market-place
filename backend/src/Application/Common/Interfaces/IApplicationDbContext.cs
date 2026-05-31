@@ -1,6 +1,8 @@
 using Domain.Entities.Categories;
 using Domain.Entities.Chats;
 using Domain.Entities.Items;
+using Domain.Entities.Moderation;
+using Domain.Entities.Notifications;
 using Domain.Entities.Orders;
 using Domain.Entities.Outbox;
 using Domain.Entities.Threads;
@@ -25,6 +27,9 @@ public interface IApplicationDbContext
     DbSet<ThreadComment> ThreadComments { get; }
     DbSet<ThreadLike> ThreadLikes { get; }
     DbSet<OutboxEvent> OutboxEvents { get; }
+    DbSet<ThreadReport> ThreadReports { get; }
+    DbSet<ModerationAudit> ModerationAudits { get; }
+    DbSet<Notification> Notifications { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

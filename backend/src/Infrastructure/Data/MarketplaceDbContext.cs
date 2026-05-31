@@ -2,6 +2,8 @@ using Application.Common.Interfaces;
 using Domain.Entities.Categories;
 using Domain.Entities.Chats;
 using Domain.Entities.Items;
+using Domain.Entities.Moderation;
+using Domain.Entities.Notifications;
 using Domain.Entities.Orders;
 using Domain.Entities.Outbox;
 using Domain.Entities.Threads;
@@ -31,6 +33,9 @@ public class MarketplaceDbContext : DbContext, IApplicationDbContext
     public DbSet<ThreadComment> ThreadComments => Set<ThreadComment>();
     public DbSet<ThreadLike> ThreadLikes => Set<ThreadLike>();
     public DbSet<OutboxEvent> OutboxEvents => Set<OutboxEvent>();
+    public DbSet<ThreadReport> ThreadReports => Set<ThreadReport>();
+    public DbSet<ModerationAudit> ModerationAudits => Set<ModerationAudit>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
