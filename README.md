@@ -296,6 +296,29 @@ Seven categories are seeded on startup: `housemate`, `share-memberships`, `textb
 
 Admin endpoints (`POST /api/threads/categories`, `PATCH /api/threads/categories/{id}`) require the `Admin` role, which is granted to users with `IsAdmin = true` in the database.
 
+## Moderation & Notifications
+
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/threads/posts/{id}/report` | File a report on a post (rate-limited 10/hr) |
+| `POST` | `/api/threads/comments/{id}/report` | File a report on a comment (rate-limited 10/hr) |
+| `GET` | `/api/threads/reports?status=open` | [Admin] Review queue — reveals real author of anonymous content |
+| `POST` | `/api/threads/reports/{id}/resolve` | [Admin] Resolve a report: `dismiss`, `remove-content`, or `warn-user` (audited) |
+| `GET` | `/api/notifications` | Your reply notifications (paginated, cursor-based) |
+| `GET` | `/api/notifications/unread-count` | Unread badge count |
+| `POST` | `/api/notifications/{id}/read` | Mark one notification read |
+| `POST` | `/api/notifications/read-all` | Mark all notifications read |
+
+### Notes
+
+- **Report rate limiting:** each authenticated user may file at most 10 reports per rolling hour (enforced via Redis).
+- **Admin review queue:** the `GET /api/threads/reports` endpoint is the single deliberate "anon-break" — moderators see the real author of anonymous content. It is role-gated (`Admin`) and every resolve action is written to `moderation_audits`.
+- **Resolve actions:** `dismiss` (marks the report dismissed without touching content), `remove-content` (soft-deletes the post or comment and enqueues a delete event so Elasticsearch drops it), `warn-user` (marks reviewed with no content change; logged).
+- **Reply notifications:** created asynchronously by `ThreadNotificationConsumer` reacting to `ThreadCommentCreated`. A top-level comment notifies the post author (`PostReplied`); a reply notifies the parent comment author (`CommentReplied`). Self-replies produce no notification. Delivery is idempotent — at most one notification per source comment.
+- **Anonymity in notifications:** anonymous repliers appear only by their stable handle (the `ActorAnonHandleSnapshot`). Real user identity is never stored in the notification.
+
 ## Solution Layout
 
 ```
