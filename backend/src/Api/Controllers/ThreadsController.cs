@@ -1,4 +1,5 @@
 using Api.Models;
+using Application.Moderation.Commands.CreateReport;
 using Application.Threads.Commands.CreateThreadComment;
 using Application.Threads.Commands.CreateThreadPost;
 using Application.Threads.Commands.DeleteThreadPost;
@@ -7,6 +8,7 @@ using Application.Threads.Commands.UpdateThreadPost;
 using Application.Threads.Queries.GetThreadComments;
 using Application.Threads.Queries.GetThreadFeed;
 using Application.Threads.Queries.GetThreadPost;
+using Contracts.DTO.Moderation;
 using Contracts.DTO.Threads;
 using Domain.Shared.Enums;
 using MediatR;
@@ -133,6 +135,37 @@ public class ThreadsController : ControllerBase
         if (!TryGetUserId(out var userId)) return Unauthorized();
         try { return Ok(await _sender.Send(new ToggleThreadLikeCommand(userId, ThreadLikeTarget.Comment, commentId), ct)); }
         catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+    }
+
+    [HttpPost("posts/{postId:guid}/report")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public Task<IActionResult> ReportPost(Guid postId, [FromBody] CreateReportRequest request, CancellationToken ct)
+        => FileReport(ReportTargetType.Post, postId, request, ct);
+
+    [HttpPost("comments/{commentId:guid}/report")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public Task<IActionResult> ReportComment(Guid commentId, [FromBody] CreateReportRequest request, CancellationToken ct)
+        => FileReport(ReportTargetType.Comment, commentId, request, ct);
+
+    private async Task<IActionResult> FileReport(ReportTargetType targetType, Guid targetId, CreateReportRequest request, CancellationToken ct)
+    {
+        if (!TryGetUserId(out var userId)) return Unauthorized();
+        try
+        {
+            var id = await _sender.Send(new CreateReportCommand(userId, targetType, targetId, request.Reason, request.Notes), ct);
+            return StatusCode(StatusCodes.Status201Created, new { reportId = id });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Rate-limit and missing-target both surface as InvalidOperationException; map the rate-limit message to 429.
+            return ex.Message.Contains("too many", StringComparison.OrdinalIgnoreCase)
+                ? StatusCode(StatusCodes.Status429TooManyRequests, new { error = ex.Message })
+                : BadRequest(new { error = ex.Message });
+        }
     }
 
     private bool TryGetUserId(out Guid userId)
