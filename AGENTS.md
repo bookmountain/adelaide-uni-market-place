@@ -116,6 +116,22 @@ The committed starter under `frontend/` implements the primary UX screens (login
     - **ThreadIndexingConsumer:** rebuilds each post's document from Postgres (anonymity applied at index time — anonymous posts never carry real identity in the index), then upserts/deletes it in the `threads` Elasticsearch index. Idempotency is enforced via a Redis-backed processed-key set.
     - **Redis hot-feed cache:** the consumer invalidates the cache on every index change; `GET /api/threads/feed` repopulates a 5-min TTL entry on first request.
     - The `threads` ES index is auto-created on startup. Required config: `Elastic__Uri` and `RabbitMq__Host` (both already documented).
+-   **Moderation & Notifications**
+    -   Users can report posts and comments (rate-limited to 10 reports per rolling hour per user via Redis).
+    -   Admins review a report queue and resolve with `dismiss`, `remove-content` (soft-delete + Elasticsearch drop), or `warn-user`; every resolution is written to `moderation_audits`.
+    -   The admin review queue (`GET /api/threads/reports`) is the single deliberate "anon-break": moderators see the real author of anonymous content, behind the `Admin` role and a dedicated `ModerationAuthor` DTO — public read paths are unaffected.
+    -   Reply notifications are created asynchronously by `ThreadNotificationConsumer` (reacts to `ThreadCommentCreated`): top-level comment → `PostReplied` to post author; reply → `CommentReplied` to parent comment author. Self-replies and duplicate deliveries are suppressed (DB-existence idempotency).
+    -   Anonymous repliers appear in notifications only by their stable handle (`ActorAnonHandleSnapshot`); real user identity is never stored.
+    -   Controllers: `ModerationController`, `NotificationsController` (auto-discovered via `AddControllers`).
+    -   Endpoints:
+        -   `POST /api/threads/posts/{id}/report` – file a report on a post (rate-limited 10/hr)
+        -   `POST /api/threads/comments/{id}/report` – file a report on a comment (rate-limited 10/hr)
+        -   `GET  /api/threads/reports?status=open` – [Admin] review queue (reveals real author of anon content)
+        -   `POST /api/threads/reports/{id}/resolve` – [Admin] dismiss | remove-content | warn-user (audited)
+        -   `GET  /api/notifications` – reply notifications for the authenticated user (paginated)
+        -   `GET  /api/notifications/unread-count` – unread badge count
+        -   `POST /api/notifications/{id}/read` – mark one notification read
+        -   `POST /api/notifications/read-all` – mark all notifications read
 -   **Infrastructure**
     -   PostgreSQL (Npgsql), Redis, RabbitMQ, Elasticsearch clients configured.
     -   Cloudflare R2 storage abstraction (S3-compatible).

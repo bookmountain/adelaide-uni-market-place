@@ -88,6 +88,7 @@ builder.Services.AddMassTransit(x =>
 {
     x.AddConsumer<ItemCreatedConsumer>();
     x.AddConsumer<Infrastructure.Events.ThreadIndexingConsumer>();
+    x.AddConsumer<Infrastructure.Events.ThreadNotificationConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {
@@ -124,6 +125,9 @@ builder.Services.AddScoped<Application.Common.Interfaces.IThreadFeedCache, Infra
 builder.Services.AddScoped<Application.Common.Interfaces.IIndexerIdempotencyStore, Infrastructure.Caching.RedisIndexerIdempotencyStore>();
 builder.Services.AddHostedService<Infrastructure.Outbox.OutboxPublisher>();
 builder.Services.AddHostedService<Infrastructure.Search.ThreadSearchIndexBootstrapper>();
+
+builder.Services.AddScoped<Application.Common.Interfaces.IReportRateLimiter, Infrastructure.Caching.RedisReportRateLimiter>();
+builder.Services.AddScoped<Application.Notifications.NotificationService>();
 
 builder.Services.AddScoped<ITokenService, Infrastructure.Auth.AppJwtTokenService>();
 builder.Services.AddScoped<IRefreshTokenStore, Infrastructure.Auth.RedisRefreshTokenStore>();
