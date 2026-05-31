@@ -1,5 +1,6 @@
 using Application.Notifications;
 using Application.UnitTests.Common;
+using Domain.Entities.Notifications;
 using Domain.Entities.Threads;
 using Domain.Entities.Users;
 using Domain.Shared.Enums;
@@ -115,5 +116,16 @@ public sealed class NotificationServiceTests
         await svc.OnCommentCreatedAsync(post.Id, comment.Id, default);
         await svc.OnCommentCreatedAsync(post.Id, comment.Id, default); // redelivery
         Assert.Equal(1, await db.Notifications.CountAsync());
+    }
+
+    [Fact]
+    public async Task Duplicate_source_comment_notification_violates_unique_index()
+    {
+        await using var t = await TestDb.CreateAsync();
+        var commentId = Guid.NewGuid();
+        t.Context.Notifications.Add(Notification.ForReply(Guid.NewGuid(), NotificationType.PostReplied, Guid.NewGuid(), commentId, Guid.NewGuid(), null));
+        await t.Context.SaveChangesAsync();
+        t.Context.Notifications.Add(Notification.ForReply(Guid.NewGuid(), NotificationType.PostReplied, Guid.NewGuid(), commentId, Guid.NewGuid(), null));
+        await Assert.ThrowsAsync<Microsoft.EntityFrameworkCore.DbUpdateException>(() => t.Context.SaveChangesAsync());
     }
 }

@@ -80,7 +80,8 @@ namespace Infrastructure.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_notifications_SourceCommentId",
                 table: "notifications",
-                column: "SourceCommentId");
+                column: "SourceCommentId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_thread_reports_Status_CreatedAt",

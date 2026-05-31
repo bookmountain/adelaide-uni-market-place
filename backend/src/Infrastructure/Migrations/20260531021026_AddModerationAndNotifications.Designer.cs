@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(MarketplaceDbContext))]
-    [Migration("20260531010403_AddModerationAndNotifications")]
+    [Migration("20260531021026_AddModerationAndNotifications")]
     partial class AddModerationAndNotifications
     {
         /// <inheritdoc />
@@ -289,7 +289,8 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SourceCommentId");
+                    b.HasIndex("SourceCommentId")
+                        .IsUnique();
 
                     b.HasIndex("RecipientUserId", "IsRead", "CreatedAt");
 

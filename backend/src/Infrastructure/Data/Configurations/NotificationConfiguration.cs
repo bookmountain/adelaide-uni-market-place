@@ -16,6 +16,6 @@ internal sealed class NotificationConfiguration : IEntityTypeConfiguration<Notif
         builder.Property(n => n.CreatedAt).IsRequired().HasColumnType("timestamp with time zone");
         builder.HasIndex(n => new { n.RecipientUserId, n.IsRead, n.CreatedAt });
         // Idempotency: at most one reply-notification per source comment.
-        builder.HasIndex(n => n.SourceCommentId);
+        builder.HasIndex(n => n.SourceCommentId).IsUnique();
     }
 }

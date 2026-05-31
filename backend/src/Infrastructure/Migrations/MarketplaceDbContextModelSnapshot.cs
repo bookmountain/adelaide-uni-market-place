@@ -286,7 +286,8 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SourceCommentId");
+                    b.HasIndex("SourceCommentId")
+                        .IsUnique();
 
                     b.HasIndex("RecipientUserId", "IsRead", "CreatedAt");
 

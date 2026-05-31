@@ -61,6 +61,13 @@ public sealed class NotificationService
         }
 
         _db.Notifications.Add(Notification.ForReply(recipientId, type, postId, comment.Id, actorUserId, actorHandle));
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent delivery already created this notification (unique index on SourceCommentId). Benign.
+        }
     }
 }
